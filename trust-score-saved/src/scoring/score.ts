@@ -1,0 +1,86 @@
+import { ABOUT } from './about';
+import { CHECKS } from './checks';
+import type { CheckDefinition, CheckSummary, Issue, RiskBand, Severity, Tier, TokenSignals, TrustReport } from './types';
+
+/** Lowest score in each band, highest band first. */
+export const BANDS: ReadonlyArray<{ band: RiskBand; min: number }> = [
+  { band: 'low', min: 80 },
+  { band: 'medium', min: 40 },
+  { band: 'high', min: 0 },
+];
+
+/** The highest the score can be once an issue of this severity is found. */
+export const SEVERITY_CAPS: Readonly<Record<Severity, number>> = {
+  critical: 39,
+  warning: 79,
+  minor: 100,
+};
+
+/** Share of the core checks that need data before a score is shown. */
+export const MIN_COVERAGE = 0.5;
+
+const SEVERITY_ORDER: Readonly<Record<Severity, number>> = { critical: 0, warning: 1, minor: 2 };
+
+export interface ScoreOptions {
+  includeExperimental?: boolean;
+  now?: number;
+  checks?: readonly CheckDefinition[];
+}
+
+export function scoreToken(signals: TokenSignals, options: ScoreOptions = {}): TrustReport {
+  const { includeExperimental = true, now = Date.now(), checks = CHECKS } = options;
+  const issues: Issue[] = [];
+  const passed: CheckSummary[] = [];
+  const notChecked: CheckSummary[] = [];
+  const coverage = { checked: 0, total: 0 };
+
+  for (const check of checks) {
+    const experimental = check.experimental ?? false;
+    if (experimental && !includeExperimental) continue;
+    if (check.appliesTo && !check.appliesTo.includes(signals.chain)) continue;
+
+    const tier = check.evaluate(signals, now);
+    if (!experimental) {
+      coverage.total += 1;
+      if (tier !== undefined) coverage.checked += 1;
+    }
+
+    const about = ABOUT[check.id];
+    if (tier === null) {
+      passed.push({ id: check.id, label: check.passLabel, experimental, about });
+    } else if (tier) {
+      issues.push(toIssue(check, tier, check.measure?.(signals, now)));
+    } else if (check.ifUnknown) {
+      issues.push(toIssue(check, check.ifUnknown));
+    } else {
+      notChecked.push({ id: check.id, label: check.name, experimental, about });
+    }
+  }
+
+  issues.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.points - a.points);
+
+  if (coverage.total === 0 || coverage.checked / coverage.total < MIN_COVERAGE) {
+    return { score: null, band: null, issues, passed, notChecked, coverage };
+  }
+
+  const deducted = issues.reduce((sum, issue) => sum + issue.points, 0);
+  const cap = Math.min(100, ...issues.map((issue) => SEVERITY_CAPS[issue.severity]));
+  const score = Math.max(0, Math.min(cap, 100 - deducted));
+  const band = BANDS.find(({ min }) => score >= min)?.band ?? 'high';
+
+  return { score, band, issues, passed, notChecked, coverage };
+}
+
+function toIssue(check: CheckDefinition, tier: Tier, measured = ''): Issue {
+  const fill = (text: string) => text.replaceAll('{value}', measured);
+  return {
+    id: check.id,
+    category: check.category,
+    experimental: check.experimental ?? false,
+    severity: tier.severity,
+    points: tier.points,
+    title: fill(tier.title),
+    summary: fill(tier.summary),
+    details: fill(tier.details),
+  };
+}

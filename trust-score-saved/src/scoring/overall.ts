@@ -1,0 +1,16 @@
+export type ScoreTone = 'green' | 'yellow' | 'orange' | 'red' | 'none';
+
+export function averageScore(scores: readonly (number | null | undefined)[]): number | null {
+  const known = scores.filter((value): value is number => typeof value === 'number');
+  if (known.length === 0) return null;
+  return Math.round(known.reduce((sum, value) => sum + value, 0) / known.length);
+}
+
+/** Each score is coloured on its own, not from the overall mark. */
+export function toneFor(score: number | null | undefined): ScoreTone {
+  if (score === null || score === undefined) return 'none';
+  if (score >= 90) return 'green';
+  if (score >= 60) return 'yellow';
+  if (score >= 30) return 'orange';
+  return 'red';
+}

@@ -1,0 +1,71 @@
+.cs.ts--active {
+  --ts-tone: #1570ef;
+  --ts-tone-text: #175cd3;
+}
+
+.cs.ts--warming {
+  --ts-tone: #ff3d00;
+  --ts-tone-text: #c43200;
+}
+
+.cs.ts--quiet {
+  --ts-tone: #98a2b3;
+  --ts-tone-text: #475467;
+}
+
+.cs-block {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #eaecf0;
+  border-radius: 10px;
+}
+
+.cs-block__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.cs-block__lead {
+  margin-top: 2px;
+  color: #344054;
+}
+
+.cs-block__lead a {
+  color: #175cd3;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cs-block__lead a:hover {
+  text-decoration: underline;
+}
+
+.cs-stats {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs-stats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #475467;
+}
+
+.cs-stats strong {
+  min-width: 3.2em;
+  color: #101828;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-note {
+  margin-top: 8px;
+  color: #667085;
+  font-size: 13px;
+}

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <title>How to find a contract address</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: #d0d5dd; }
+      body { font-family: "Segoe UI", system-ui, sans-serif; color: #101828; }
+      .artboard {
+        width: 1600px;
+        height: 900px;
+        margin: 0 auto;
+        padding: 22px 28px 16px;
+        background: linear-gradient(180deg, #f7f9fc 0%, #e8eef6 100%);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .kicker { margin: 0 0 2px; color: #175cd3; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: 30px; letter-spacing: -0.03em; }
+      .lede { margin: 6px 0 0; color: #475467; font-size: 15px; max-width: 1280px; }
+      .grid {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 12px;
+      }
+      .step {
+        min-width: 0;
+        min-height: 0;
+        padding: 10px;
+        background: #fff;
+        border: 1px solid #eaecf0;
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(16, 24, 40, 0.05);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .head { display: flex; align-items: center; gap: 8px; }
+      .num { width: 26px; height: 26px; border-radius: 50%; background: #175cd3; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+      h2 { margin: 0; font-size: 16px; letter-spacing: -0.02em; }
+      .step > p { margin: 0; color: #475467; font-size: 12px; line-height: 1.35; }
+      .shot {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #111;
+        background: #0d0e12;
+      }
+      .shot.light { background: #f2f4f7; border-color: #d0d5dd; }
+      .shot img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+      .shot.url img { object-fit: contain; background: #202124; object-position: left center; }
+      .shot.search img { object-position: 50% 18%; }
+      .shot.pair img { object-position: 100% 10%; }
+      .shot.scanner img { object-fit: contain; object-position: center 40%; }
+      .foot { display: flex; justify-content: space-between; gap: 16px; color: #475467; font-size: 12px; }
+      .foot b { color: #101828; }
+    </style>
+  </head>
+  <body>
+    <article class="artboard" id="guide">
+      <header>
+        <p class="kicker">User guide · DexScreener</p>
+        <h1>How to find a contract address</h1>
+        <p class="lede">
+          Open DexScreener, search ETH, copy the token contract from the pair page, then paste it into Token trust score.
+          ETH is listed as <b>WETH</b> (Wrapped Ether), and the code starts with 0x.
+        </p>
+      </header>
+
+      <section class="grid">
+        <article class="step">
+          <div class="head"><span class="num">1</span><h2>Go to DexScreener</h2></div>
+          <p>In your browser, open <b>dexscreener.com</b>.</p>
+          <div class="shot url">
+            <img src="shots/01-dexscreener-url.png" alt="Browser address bar showing dexscreener.com" />
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="head"><span class="num">2</span><h2>Search ETH</h2></div>
+          <p>Type ETH in the search box. Open an Ethereum pair — here, the first result, ETH / USDC.</p>
+          <div class="shot search">
+            <img src="shots/02-search-eth-ann.png" alt="DexScreener search results for eth, with ETH/USDC highlighted" />
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="head"><span class="num">3</span><h2>Copy the ETH / WETH address</h2></div>
+          <p>On the right-hand panel, click the ETH token (shown as WETH). Do not copy the pair address or USDC.</p>
+          <div class="shot pair">
+            <img src="shots/03-eth-usdc-pair-ann.png" alt="ETH/USDC pair page with the token panel highlighted" />
+          </div>
+        </article>
+
+        <article class="step">
+          <div class="head"><span class="num">4</span><h2>Paste it into the scanner</h2></div>
+          <p>Open Token trust score, paste the address, then press Check.</p>
+          <div class="shot light scanner">
+            <img src="shots/04-paste-scanner-ann.png" alt="Token trust score with the WETH contract pasted" />
+          </div>
+        </article>
+      </section>
+
+      <footer class="foot">
+        <span><b>Do not copy Pair or USDC.</b> You want the WETH row: 0xC02…6Cc2.</span>
+        <span><b>If it looks like a website,</b> you have the wrong thing. The address is one long 0x code.</span>
+      </footer>
+    </article>
+  </body>
+</html>
