@@ -1,0 +1,254 @@
+:host {
+  all: initial;
+}
+
+.bf {
+  --bf-bg: #ffffff;
+  --bf-panel: #f4f6f9;
+  --bf-text: #101828;
+  --bf-muted: #5b6577;
+  --bf-line: #dde2ea;
+  --bf-accent: #0b5cd5;
+  --bf-accent-text: #ffffff;
+  --bf-green: #12805c;
+  --bf-yellow: #a06a00;
+  --bf-orange: #c2410c;
+  --bf-red: #c0262d;
+
+  width: min(380px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  color: var(--bf-text);
+  background: var(--bf-bg);
+  border: 1px solid var(--bf-line);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgb(16 24 40 / 18%);
+  font: 14px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bf {
+    --bf-bg: #141a24;
+    --bf-panel: #1c2430;
+    --bf-text: #eef1f6;
+    --bf-muted: #a3adbd;
+    --bf-line: #2c3646;
+    --bf-accent: #4c8dff;
+    --bf-accent-text: #0b1220;
+    --bf-green: #3ccf91;
+    --bf-yellow: #f2c14e;
+    --bf-orange: #ff9a52;
+    --bf-red: #ff6b6b;
+  }
+}
+
+.bf *,
+.bf *::before,
+.bf *::after {
+  box-sizing: border-box;
+}
+
+.bf__bar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bf-bg);
+  border-bottom: 1px solid var(--bf-line);
+}
+
+.bf__brand {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.bf__close {
+  border: 0;
+  background: none;
+  color: var(--bf-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.bf__body {
+  padding: 12px;
+}
+
+.bf__body p {
+  margin: 0 0 10px;
+}
+
+.bf__question {
+  font-weight: 600;
+}
+
+.bf__list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.bf__pick,
+.bf__remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.bf__remember {
+  margin-bottom: 10px;
+  color: var(--bf-muted);
+}
+
+.bf__address,
+.bf__muted,
+.bf__small {
+  color: var(--bf-muted);
+}
+
+.bf__address {
+  margin-left: auto;
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.bf__small {
+  font-size: 12px;
+}
+
+.bf__note {
+  padding: 8px 10px;
+  background: var(--bf-panel);
+  border-radius: 8px;
+}
+
+.bf__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.bf__primary,
+.bf__secondary {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bf__primary {
+  color: var(--bf-accent-text);
+  background: var(--bf-accent);
+  border: 1px solid var(--bf-accent);
+}
+
+.bf__secondary {
+  color: var(--bf-text);
+  background: transparent;
+  border: 1px solid var(--bf-line);
+}
+
+.bf__loading::after {
+  content: '…';
+}
+
+.bf__report + .bf__report {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bf-line);
+}
+
+.bf__report-title {
+  margin-bottom: 8px;
+}
+
+.bf__overall {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.bf__overall-value {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bf__overall-label {
+  font-weight: 600;
+}
+
+.bf__scores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.bf__score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  background: var(--bf-panel);
+  border-radius: 8px;
+}
+
+.bf__score-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.bf__score-label {
+  font-size: 12px;
+  color: var(--bf-muted);
+}
+
+.bf__score--green {
+  color: var(--bf-green);
+}
+
+.bf__score--yellow {
+  color: var(--bf-yellow);
+}
+
+.bf__score--orange {
+  color: var(--bf-orange);
+}
+
+.bf__score--red {
+  color: var(--bf-red);
+}
+
+.bf__score--none {
+  color: var(--bf-muted);
+}
+
+.bf__issues {
+  margin: 0 0 10px;
+  padding-left: 18px;
+}
+
+.bf__issue {
+  margin-bottom: 4px;
+}
+
+.bf__issue--critical strong {
+  color: var(--bf-red);
+}
+
+.bf__issue--warning strong {
+  color: var(--bf-orange);
+}
+
+.bf__brief p {
+  margin: 0 0 6px;
+}

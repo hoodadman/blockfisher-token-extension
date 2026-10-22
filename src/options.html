@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Blockfisher auto scan settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Blockfisher auto scan</h1>
+      <p>Choose what happens when you open a token on each site. These choices are saved in your Chrome profile and follow you to any computer where you're signed in to Chrome. They're never sent to Blockfisher.</p>
+
+      <h2>Trading sites</h2>
+      <ul id="named" class="sites"></ul>
+
+      <h2>Sites you added</h2>
+      <p id="remembered-empty" class="muted">None yet. On any other site, click the Blockfisher icon and tick "Run auto scan on this site in future".</p>
+      <ul id="remembered" class="sites"></ul>
+
+      <h2>Privacy</h2>
+      <p>Blockfisher reads token addresses on the page inside your browser. Only the token address and its chain are sent to Blockfisher, to check it. We never send the page address, your browsing history or your wallet.</p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

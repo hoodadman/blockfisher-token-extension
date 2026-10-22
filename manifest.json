@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Blockfisher auto scan",
+  "version": "0.2.0",
+  "description": "Spots the token you're looking at on DexScreener, CoinGecko, jup.ag and more, and checks whether it's safe.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["__API_ORIGIN__/*"],
+  "optional_host_permissions": ["https://*/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Scan the token on this page",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/16.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://dexscreener.com/*",
+        "https://www.dexscreener.com/*",
+        "https://www.coingecko.com/*",
+        "https://coingecko.com/*",
+        "https://jup.ag/*",
+        "https://www.jup.ag/*",
+        "https://app.uniswap.org/*",
+        "https://gmgn.ai/*",
+        "https://www.gmgn.ai/*",
+        "https://birdeye.so/*",
+        "https://www.birdeye.so/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}
