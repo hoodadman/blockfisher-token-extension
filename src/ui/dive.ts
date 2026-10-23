@@ -4,6 +4,9 @@
  * layer removes itself when done, and is skipped for people who prefer less motion.
  */
 
+/** When the water has cleared (see .bf-dive in card.css). */
+export const DIVE_CLEAR_MS = 1_700;
+
 const BUBBLES = [
   { left: 12, size: 8, delay: 0.1 },
   { left: 24, size: 5, delay: 0.35 },

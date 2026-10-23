@@ -59,7 +59,10 @@ export function scoreChart(overall: number | null, pillars: readonly Pillar[]): 
     const title = svg('title', {});
     title.textContent = pillar.score === null || pillar.score === undefined ? `${pillar.label}: no score yet` : `${pillar.label}: ${pillar.score} / 100`;
     petal.append(title, svg('polygon', { class: 'bf-chart__track', points: points(tip, left, right) }));
-    if (fill > 0) petal.append(svg('polygon', { class: 'bf-chart__fill', points: points(fillTip, left, right) }));
+    if (fill > 0) {
+      const empty = points(mid, left, right);
+      petal.append(svg('polygon', { class: 'bf-chart__fill', points: points(fillTip, left, right), 'data-empty': empty }));
+    }
     const text = svg('text', { class: 'bf-chart__label', x: label.x.toFixed(1), y: label.y.toFixed(1), 'text-anchor': 'middle', 'dominant-baseline': 'middle' });
     text.textContent = pillar.label;
     petal.append(text);
@@ -79,4 +82,39 @@ export function scoreChart(overall: number | null, pillars: readonly Pillar[]): 
 
   box.append(chart, centre);
   return box;
+}
+
+const FILL_MS = 900;
+const STAGGER_MS = 150;
+
+/**
+ * Empties the petals, then fills each one up to its score after `delayMs`, one after the
+ * other. Does nothing for people who prefer less motion, so the chart just shows.
+ */
+export function fillUp(chart: HTMLElement, delayMs: number): void {
+  if (globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  chart.querySelectorAll<SVGPolygonElement>('.bf-chart__fill').forEach((fill, index) => {
+    const full = fill.getAttribute('points');
+    const empty = fill.getAttribute('data-empty');
+    if (!full || !empty) return;
+    fill.setAttribute('points', empty);
+    const grow = svg('animate', {
+      attributeName: 'points',
+      from: empty,
+      to: full,
+      dur: `${FILL_MS}ms`,
+      begin: 'indefinite',
+      fill: 'freeze',
+      calcMode: 'spline',
+      keyTimes: '0;1',
+      keySplines: '0.2 0.7 0.3 1',
+    });
+    fill.append(grow);
+    setTimeout(() => {
+      // If animation is unavailable, still end up with the right shape.
+      if (typeof grow.beginElement === 'function') grow.beginElement();
+      else fill.setAttribute('points', full);
+    }, delayMs + index * STAGGER_MS);
+    setTimeout(() => fill.setAttribute('points', full), delayMs + index * STAGGER_MS + FILL_MS + 50);
+  });
 }
