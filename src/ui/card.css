@@ -325,7 +325,7 @@
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
-  animation: bf-dive-clear 0.7s ease-out 1.05s forwards;
+  animation: bf-dive-clear 0.8s ease-out 1.5s forwards;
 }
 
 .bf-dive__water {
@@ -334,7 +334,8 @@
   right: 0;
   top: 0;
   height: 112%;
-  background: linear-gradient(180deg, rgb(56 160 230 / 92%) 0%, rgb(11 92 213 / 94%) 45%, rgb(6 42 92 / 96%) 100%);
+  background: linear-gradient(180deg, rgb(20 92 150 / 38%) 0%, rgb(10 60 120 / 48%) 50%, rgb(4 28 64 / 60%) 100%);
+  backdrop-filter: saturate(0.85);
   transform: translateY(105%);
   animation: bf-dive-rise 0.75s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
 }
@@ -356,21 +357,21 @@
 }
 
 .bf-dive__wave path {
-  fill: rgb(56 160 230 / 92%);
+  fill: rgb(20 92 150 / 38%);
 }
 
 .bf-dive__bubble {
   position: absolute;
   bottom: -12px;
-  border: 1.5px solid rgb(255 255 255 / 75%);
+  border: 1.5px solid rgb(255 255 255 / 55%);
   border-radius: 50%;
-  background: rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 12%);
   opacity: 0;
   animation: bf-dive-bubble 1.3s ease-in forwards;
 }
 
 .bf--dive .bf__body {
-  animation: bf-dive-surface 0.9s ease-out 1.05s both;
+  animation: bf-dive-surface 1.4s ease-out 0.35s both;
 }
 
 @keyframes bf-dive-rise {
@@ -392,7 +393,7 @@
 }
 
 @keyframes bf-dive-surface {
-  from { opacity: 0.4; filter: blur(3px) hue-rotate(-20deg); transform: translateY(6px); }
+  from { opacity: 0.55; filter: blur(4px); transform: translateY(6px); }
   to { opacity: 1; filter: none; transform: none; }
 }
 

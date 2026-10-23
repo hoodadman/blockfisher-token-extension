@@ -28,7 +28,7 @@ function mount(): HTMLElement {
   if (root) return root;
   const host = document.createElement('div');
   host.id = HOST_ID;
-  host.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:2147483646;';
+  host.style.cssText = 'position:fixed;right:16px;top:16px;z-index:2147483646;';
   const shadow = host.attachShadow({ mode: 'closed' });
   const style = document.createElement('style');
   style.textContent = css;
