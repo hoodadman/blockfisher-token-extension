@@ -1,4 +1,4 @@
-import { nameInput, type Candidate, type IdentifiedToken, type Network } from './readers/types';
+import { nameInput, tickerInput, type Candidate, type IdentifiedToken, type Network } from './readers/types';
 
 /**
  * Market data fetched from the user's own browser. DexScreener and CoinGecko rate-limit
@@ -139,6 +139,22 @@ async function searchCoinGecko(query: string, symbol?: string): Promise<string |
   )?.id;
 }
 
+/**
+ * A ticker from an exchange page. Many coins share a ticker; exchanges list the known one,
+ * so take the best-ranked coin whose ticker matches exactly, and only a ranked one.
+ */
+async function identifyByTicker(ticker: string): Promise<IdentifiedToken[]> {
+  const input = tickerInput(ticker);
+  const body = await getJson<{ coins?: Array<{ id?: string; symbol?: string; market_cap_rank?: number | null }> }>(
+    `${COINGECKO}/search?query=${encodeURIComponent(ticker)}`,
+  ).catch(() => ({ coins: [] }));
+  const match = body.coins
+    ?.filter((coin) => coin.id && plain(coin.symbol) === plain(ticker) && typeof coin.market_cap_rank === 'number')
+    .sort((a, b) => (a.market_cap_rank ?? 0) - (b.market_cap_rank ?? 0))[0];
+  if (!match?.id) return [{ input, status: 'not-found', message: 'CoinGecko does not list this coin.' }];
+  return (await identifyCoinGecko(match.id, true)).map((token) => ({ ...token, input }));
+}
+
 /** A coin named in the page title, like "Bittensor (TAO)". */
 async function identifyByName(name: string, symbol: string): Promise<IdentifiedToken[]> {
   const input = nameInput(name);
@@ -155,7 +171,9 @@ async function identifyCoinGecko(id: string, retried = false): Promise<Identifie
     if (!(error instanceof MarketError && error.status === 404)) throw error;
     // Other sites' names for a coin (CoinMarketCap's "bittensor") are usually CoinGecko's
     // too, but not always; ask CoinGecko's search for the closest match.
-    const match = !retried ? await searchCoinGecko(id) : undefined;
+    // OKX adds the ticker: "bittensor-tao".
+    const named = id.match(/^(.+)-([a-z0-9]{2,10})$/);
+    const match = retried ? undefined : (await searchCoinGecko(id)) ?? (named ? await searchCoinGecko(named[1], named[2]) : undefined);
     if (match) return (await identifyCoinGecko(match, true)).map((token) => ({ ...token, input: id }));
     return [{ input: id, status: 'not-found', message: 'CoinGecko does not list this coin.' }];
   }
@@ -181,10 +199,12 @@ export async function identify(candidates: readonly Candidate[]): Promise<Identi
   const addresses = candidates.filter((item): item is Extract<Candidate, { address: string }> => 'address' in item);
   const coins = candidates.filter((item): item is Extract<Candidate, { coingeckoId: string }> => 'coingeckoId' in item);
   const named = candidates.filter((item): item is Extract<Candidate, { coin: string }> => 'coin' in item);
+  const tickers = candidates.filter((item): item is Extract<Candidate, { ticker: string }> => 'ticker' in item);
   const [fromAddresses, ...fromCoins] = await Promise.all([
     identifyAddresses(addresses),
     ...coins.map((coin) => identifyCoinGecko(coin.coingeckoId)),
     ...named.map((coin) => identifyByName(coin.coin, coin.symbol)),
+    ...tickers.map((coin) => identifyByTicker(coin.ticker)),
   ]);
   return [...fromAddresses, ...fromCoins.flat()];
 }

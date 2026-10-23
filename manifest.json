@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Blockfisher auto scan",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Spots the token you're looking at on DexScreener, CoinGecko, jup.ag and more, and checks whether it's safe.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["__API_ORIGIN__/*", "https://api.dexscreener.com/*", "https://api.coingecko.com/*"],

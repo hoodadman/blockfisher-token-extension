@@ -1,5 +1,5 @@
 import { NETWORK_BY_DEXSCREENER, isCommonToken, isSolanaAddress, isTokenAddress } from './address';
-import { dexScreenerPath, readAnyUrl, readUrl, siteOf } from './url';
+import { dexScreenerPath, readAnyUrl, readExchangeUrl, readUrl, siteOf } from './url';
 import { candidateKey, type Candidate, type Found, type Network } from './types';
 
 /** Explorer token pages. A link to one of these is a strong hint. */
@@ -139,6 +139,8 @@ function fromDexScreenerPage(doc: Document, href: string): Found[] {
 
 /** "Bittensor (TAO)", "Bittensor price today, TAO to USD", "Bittensor TAO Price". */
 const TITLE_PATTERNS = [
+  // "Bittensor Price: TAO Live Price Chart" and "Bittensor Price (TAO)". The ticker must be in capitals.
+  /^\s*([A-Za-z][\w .'&-]{1,40}?)\s+[Pp]rice\s*[:(|-]\s*\$?([A-Z0-9]{2,10})\b/,
   /^\s*([A-Za-z][\w .'&-]{1,40}?)\s*\(\$?([A-Za-z0-9]{2,10})\)/,
   /^\s*([A-Za-z][\w .'&-]{1,40}?) price today,?\s+\$?([A-Za-z0-9]{2,10}) to [A-Z]{3}/i,
   /^\s*([A-Za-z][\w .'&-]{1,40}?)\s+\$?([A-Z0-9]{2,10})\s+price\b/i,
@@ -164,8 +166,9 @@ export function readTitle(doc: Document): Found[] {
  * What to offer on this page, from most to least certain:
  * 1. The page address, read by a site-specific reader or, on any site, for any address in it.
  * 2. On named sites, nothing else: their trending bars and lists are full of other tokens.
- * 3. Elsewhere, links and addresses on the page.
- * 4. Failing that, the coin named in the page title.
+ * 3. Elsewhere, a coin named by the page address of an exchange (/spot/TAOUSDT, /price/bittensor).
+ * 4. Then links and addresses on the page.
+ * 5. Failing that, the coin named in the page title.
  */
 export function findTokens(doc: Document, href: string): Found[] {
   const fromUrl = readUrl(href);
@@ -175,5 +178,8 @@ export function findTokens(doc: Document, href: string): Found[] {
     return anyUrl.length > 0 ? rank(anyUrl) : fromDexScreenerPage(doc, href);
   }
   const onPage = readPage(doc, href);
+  if (onPage.some((item) => item.source === 'url')) return onPage;
+  const exchange = readExchangeUrl(href);
+  if (exchange.length > 0) return exchange;
   return onPage.length > 0 ? onPage : readTitle(doc);
 }

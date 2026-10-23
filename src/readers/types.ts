@@ -3,7 +3,7 @@ export type Network = 'eth' | 'base' | 'bsc' | 'sol';
 
 /**
  * What the page reader found: an address (maybe a DexScreener pair), a CoinGecko coin id,
- * or a coin's name and ticker read from the page title, looked up by search.
+ * a coin's name and ticker read from the page title, or a bare ticker, looked up by search.
  */
 export type Candidate =
   | {
@@ -13,7 +13,9 @@ export type Candidate =
       chainId?: string;
     }
   | { coingeckoId: string }
-  | { coin: string; symbol: string };
+  | { coin: string; symbol: string }
+  /** A ticker from an exchange's trading page (BTCUSDT, TAO-USD), looked up by search. */
+  | { ticker: string };
 
 /** url and title describe the page itself; link and text are things mentioned on it. */
 export type FoundSource = 'url' | 'title' | 'link' | 'text';
@@ -43,9 +45,14 @@ export interface IdentifiedToken {
 /** The input identify reports back for a name candidate. */
 export const nameInput = (coin: string) => `name:${coin.toLowerCase()}`;
 
+/** The input identify reports back for a ticker candidate. */
+export const tickerInput = (ticker: string) => `ticker:${ticker.toUpperCase()}`;
+
 export const candidateKey = (candidate: Candidate): string =>
   'coingeckoId' in candidate
     ? `cg:${candidate.coingeckoId}`
     : 'coin' in candidate
       ? nameInput(candidate.coin)
-      : `addr:${candidate.address.startsWith('0x') ? candidate.address.toLowerCase() : candidate.address}`;
+      : 'ticker' in candidate
+        ? tickerInput(candidate.ticker)
+        : `addr:${candidate.address.startsWith('0x') ? candidate.address.toLowerCase() : candidate.address}`;

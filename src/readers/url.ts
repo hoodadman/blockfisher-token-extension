@@ -163,6 +163,73 @@ export function readAnyUrl(href: string): Found[] {
   return found.sort((a, b) => b.score - a.score);
 }
 
+/** What exchanges price a coin in. A trading page's address names the coin and one of these. */
+const QUOTES = ['USDT', 'USDC', 'FDUSD', 'BUSD', 'TUSD', 'USDE', 'PYUSD', 'DAI', 'USD', 'EUR', 'GBP', 'TRY', 'BRL', 'JPY', 'AUD', 'CAD', 'BTC', 'ETH', 'BNB'];
+/** BTCUSDT with no separator: only stablecoins and money, so ETHBTC-style words aren't split. */
+const JOINED_PAIR = /^([A-Z0-9]{2,12}?)(USDT|USDC|FDUSD|BUSD|TUSD|USDE|USD|EUR|GBP|TRY)$/;
+const SPLIT_PAIR = /^([A-Za-z0-9]{2,12})[-_/]([A-Za-z]{3,6})$/;
+const TICKER = /^[A-Za-z0-9]{2,12}$/;
+/** Path words that are never a coin, so /spot/usdt or /trade-spot/usd don't read as one. */
+const NOT_TICKERS = new Set(['app', 'en', 'trade', 'spot', 'price', 'prices', 'futures', 'margin', 'convert', 'buy', 'sell', 'swap', 'market', 'markets', 'chart', 'perp', 'perpetual', 'pro', 'advanced']);
+/** /price/bittensor, /prices/bittensor, /currencies/bittensor: the coin's name, as most sites spell it. */
+const COIN_PAGE_WORDS = /^(price|prices|currencies|currency|coin|coins|asset|assets|crypto|cryptocurrency|cryptocurrencies)$/i;
+
+function tickerOf(base: string): string | undefined {
+  return TICKER.test(base) && !NOT_TICKERS.has(base.toLowerCase()) && !QUOTES.includes(base.toUpperCase()) ? base.toUpperCase() : undefined;
+}
+
+/** The coin in a trading pair: BTCUSDT, TAO-USD, tao_usdt, TAO/USDT. */
+function pairBase(value: string): string | undefined {
+  const joined = value.match(JOINED_PAIR);
+  if (joined) return tickerOf(joined[1]);
+  const split = value.match(SPLIT_PAIR);
+  return split && QUOTES.includes(split[2].toUpperCase()) ? tickerOf(split[1]) : undefined;
+}
+
+/**
+ * Exchanges (Coinbase, Kraken, Bitget, Binance, OKX, Bybit) name coins, not contracts: a
+ * trading pair (/spot/TAOUSDT, /trade/tao-usd, /spot/TAO/USDT, ?symbol=TAOUSDT) or a price
+ * page (/price/bittensor). Identify looks them up on CoinGecko for the contract, if any.
+ */
+export function readExchangeUrl(href: string): Found[] {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return [];
+  }
+  const found: Found[] = [];
+  const parts = url.pathname.split('/').filter(Boolean).map((part) => {
+    try {
+      return decodeURIComponent(part);
+    } catch {
+      return part;
+    }
+  });
+  const add = (candidate: Found['candidate']) => found.push({ candidate, source: 'url', score: URL_SCORE - 4 });
+
+  const last = parts.length - 1;
+  if (last >= 1 && COIN_PAGE_WORDS.test(parts[last - 1]) && /^[a-z0-9][a-z0-9-]{1,60}$/i.test(parts[last])) {
+    add({ coingeckoId: parts[last].toLowerCase() });
+  }
+  parts.forEach((part, index) => {
+    // Bybit splits the pair over two path parts: /trade/spot/TAO/USDT.
+    const base = pairBase(part) ?? (QUOTES.includes(parts[index + 1]?.toUpperCase() ?? '') ? tickerOf(part) : undefined);
+    if (base) add({ ticker: base });
+  });
+  for (const value of url.searchParams.values()) {
+    const base = pairBase(value);
+    if (base) add({ ticker: base });
+  }
+  const seen = new Set<string>();
+  return found.filter((item) => {
+    const key = JSON.stringify(item.candidate);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function siteOf(hostname: string): (typeof NAMED_SITES)[number] | undefined {
   const host = hostname.toLowerCase().replace(/^www\./, '');
   return NAMED_SITES.find((site) => host === site);
