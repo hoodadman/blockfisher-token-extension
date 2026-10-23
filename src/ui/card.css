@@ -3,6 +3,7 @@
 }
 
 .bf {
+  position: relative;
   --bf-bg: #ffffff;
   --bf-panel: #f4f6f9;
   --bf-text: #101828;
@@ -314,4 +315,88 @@
 
 .bf__brief p {
   margin: 0 0 6px;
+}
+
+/* Going underwater: water rises over the card, then clears to show the results. */
+.bf-dive {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: bf-dive-clear 0.7s ease-out 1.05s forwards;
+}
+
+.bf-dive__water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 112%;
+  background: linear-gradient(180deg, rgb(56 160 230 / 92%) 0%, rgb(11 92 213 / 94%) 45%, rgb(6 42 92 / 96%) 100%);
+  transform: translateY(105%);
+  animation: bf-dive-rise 0.75s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+}
+
+.bf-dive__wave {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  display: flex;
+  width: 200%;
+  height: 14px;
+  margin-bottom: -1px;
+  animation: bf-dive-wave 0.9s linear infinite;
+}
+
+.bf-dive__wave svg {
+  flex: 1 0 50%;
+  height: 100%;
+}
+
+.bf-dive__wave path {
+  fill: rgb(56 160 230 / 92%);
+}
+
+.bf-dive__bubble {
+  position: absolute;
+  bottom: -12px;
+  border: 1.5px solid rgb(255 255 255 / 75%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 18%);
+  opacity: 0;
+  animation: bf-dive-bubble 1.3s ease-in forwards;
+}
+
+.bf--dive .bf__body {
+  animation: bf-dive-surface 0.9s ease-out 1.05s both;
+}
+
+@keyframes bf-dive-rise {
+  to { transform: translateY(-6%); }
+}
+
+@keyframes bf-dive-wave {
+  to { transform: translateX(-50%); }
+}
+
+@keyframes bf-dive-bubble {
+  0% { opacity: 0; transform: translateY(0) scale(0.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-420px) translateX(6px) scale(1.1); }
+}
+
+@keyframes bf-dive-clear {
+  to { opacity: 0; }
+}
+
+@keyframes bf-dive-surface {
+  from { opacity: 0.4; filter: blur(3px) hue-rotate(-20deg); transform: translateY(6px); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-dive { display: none; }
+  .bf--dive .bf__body { animation: none; }
 }
