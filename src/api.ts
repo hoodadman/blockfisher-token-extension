@@ -1,3 +1,4 @@
+import { MarketError, identify as identifyOnMarket, marketData } from './market';
 import type { Candidate, IdentifiedToken, Network } from './readers/types';
 
 declare const __API_BASE__: string;
@@ -47,12 +48,24 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return reply;
 }
 
-export async function identify(candidates: readonly Candidate[]): Promise<IdentifiedToken[]> {
-  const reply = await post<{ tokens: IdentifiedToken[] }>('/api/identify', { candidates: candidates.slice(0, 5) });
-  return reply.tokens;
+function marketMessage(error: MarketError): string {
+  if (error.status === 429) return 'DexScreener is busy right now. Try again in a minute.';
+  if (error.status === 0) return 'We couldn’t reach DexScreener. Check your connection and try again.';
+  return 'The market data service did not respond. Try again in a minute.';
 }
 
+/** Asked from the user's browser: DexScreener and CoinGecko rate-limit our server. */
+export async function identify(candidates: readonly Candidate[]): Promise<IdentifiedToken[]> {
+  try {
+    return await identifyOnMarket(candidates.slice(0, 5));
+  } catch (error) {
+    throw new ApiError(error instanceof MarketError ? marketMessage(error) : 'Something went wrong. Please try again in a minute.');
+  }
+}
+
+/** Market data comes from the user's browser; the scanner scores it with its own checks. */
 export async function scan(address: string, network?: Network): Promise<ScanReport> {
-  const reply = await post<{ report: ScanReport }>('/api/scan', { address, network });
+  const market = network ? await marketData(address, network) : {};
+  const reply = await post<{ report: ScanReport }>('/api/scan', { address, network, ...market });
   return reply.report;
 }

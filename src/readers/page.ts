@@ -1,5 +1,5 @@
 import { isCommonToken, isTokenAddress } from './address';
-import { readUrl } from './url';
+import { readUrl, siteOf } from './url';
 import { candidateKey, type Candidate, type Found, type Network } from './types';
 
 /** Explorer token pages. A link to one of these is a strong hint. */
@@ -113,4 +113,14 @@ export function readPage(doc: Document, href: string): Found[] {
 /** Best first, common tokens (SOL, USDC, ...) last, at most five. */
 export function rank(found: readonly Found[]): Found[] {
   return [...found].sort((a, b) => Number(Boolean(a.common)) - Number(Boolean(b.common)) || b.score - a.score).slice(0, MAX_RESULTS);
+}
+
+/**
+ * What to offer on this page. On the named sites the page address says which token is
+ * open; their trending bars and lists are full of other tokens, so we don't read the page.
+ */
+export function findTokens(doc: Document, href: string): Found[] {
+  const fromUrl = readUrl(href);
+  if (fromUrl.length > 0 || siteOf(new URL(href).hostname)) return fromUrl;
+  return readPage(doc, href);
 }

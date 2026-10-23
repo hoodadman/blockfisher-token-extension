@@ -1,7 +1,6 @@
 import { askState, scanAll, send } from './flow';
-import { readPage } from './readers/page';
-import { candidateKey, type Found } from './readers/types';
-import { readUrl, siteOf } from './readers/url';
+import { findTokens } from './readers/page';
+import { candidateKey } from './readers/types';
 import { modeFor } from './settings';
 import { renderCard, tokenLabel, type CardState } from './ui/card';
 import css from './ui/card.css';
@@ -57,14 +56,8 @@ async function runScans(tokens: Parameters<typeof scanAll>[0], key: string) {
   if (lastKey === key) show(results, key);
 }
 
-function find(): Found[] {
-  const fromUrl = readUrl(location.href);
-  if (fromUrl.length > 0 || siteOf(location.hostname)) return fromUrl;
-  return readPage(document, location.href);
-}
-
 async function check() {
-  const found = find();
+  const found = findTokens(document, location.href);
   const key = found.map((item) => candidateKey(item.candidate)).join('|');
   if (key === lastKey) return;
   lastKey = key;
@@ -79,7 +72,8 @@ async function check() {
   const reply = await send({ type: 'identify', candidates: found.map((item) => item.candidate) });
   if (lastKey !== key) return;
   if (!reply.ok) {
-    hide();
+    // Say so rather than stay hidden, or it looks like the extension isn't working.
+    show({ kind: 'message', text: `Blockfisher couldn’t check this token right now. ${reply.text}` }, key);
     return;
   }
   const state = askState(found, reply.tokens, false);

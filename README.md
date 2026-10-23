@@ -47,5 +47,6 @@ The scanner checks each address trades somewhere before the card shows, which dr
 - Content scripts on the six named sites.
 - `optional_host_permissions`: asked for one site at a time, only when the user ticks "Run auto scan on this site in future".
 - Host access to the scanner, to send it the token address.
+- Host access to api.dexscreener.com and api.coingecko.com. Market data is fetched from the user's browser, because both services rate-limit the shared addresses the scanner runs on, and sent with the scan.
 
-Only the token address and chain are sent to Blockfisher. Not the page address, browsing history or wallet.
+Only the token address and chain (and the token's public market data) are sent to Blockfisher, DexScreener and CoinGecko. Not the page address, browsing history or wallet.
