@@ -1,4 +1,4 @@
-import { askState, checkingLabel, scanAll, send } from './flow';
+import { askState, checkingLabel, notChosen, scanAll, send } from './flow';
 import type { Found } from './readers/types';
 import { siteOf } from './readers/url';
 import { hostKey, loadSettings } from './settings';
@@ -34,15 +34,20 @@ function show(state: CardState, host?: string) {
       const allowed = remember && host ? requestSite(host) : Promise.resolve(false);
       void (async () => {
         if (host && (await allowed)) await rememberSite(host);
-        await runScans(tokens);
+        await runScans(tokens, state.kind === 'ask' ? notChosen(state.tokens, tokens) : []);
       })();
+    },
+    onScanMore(token) {
+      if (state.kind === 'results') void scanAll([token], state.more ?? [], state).then((next) => show(next, host));
     },
   });
 }
 
-async function runScans(tokens: Parameters<typeof scanAll>[0]) {
+type Tokens = Parameters<typeof scanAll>[0];
+
+async function runScans(tokens: Tokens, more: Tokens = []) {
   show({ kind: 'loading', label: checkingLabel(tokens) });
-  show(await scanAll(tokens));
+  show(await scanAll(tokens, more));
 }
 
 /** The card the page already has, when auto pop up is off or the card was closed. */
@@ -103,7 +108,7 @@ async function start() {
   const state = askState(found, reply.tokens, offerRemember);
   // Keep the question when it carries the "remember this site" choice.
   if (state?.kind === 'ask' && !offerRemember && !settings.switches.confirmToken) {
-    await runScans(state.tokens.slice(0, 1));
+    await runScans(state.tokens.slice(0, 1), state.tokens.slice(1));
     return;
   }
   if (state?.kind === 'message') {

@@ -401,3 +401,9 @@
   .bf-dive { display: none; }
   .bf--dive .bf__body { animation: none; }
 }
+
+.bf__more {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
