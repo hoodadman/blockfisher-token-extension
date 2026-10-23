@@ -23,10 +23,26 @@ function token(addr: string, network?: Network, score = URL_SCORE): Found {
   return { candidate: { address: addr, network }, source: 'url', score, common: isCommonToken(addr) };
 }
 
-/** dexscreener.com/<chain>/<pair or token> */
+/** Uniswap v4 pools have a 32-byte id rather than an address. DexScreener looks them up like pairs. */
+const POOL_ID = /^0x[a-fA-F0-9]{64}$/;
+
+/** The chain and the pair (or token) in a dexscreener.com/<chain>/<value> address, unchecked. */
+export function dexScreenerPath(href: string): { chainId: string; value: string } | null {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return null;
+  }
+  if (siteOf(url.hostname) !== 'dexscreener.com') return null;
+  const [chainId, value] = url.pathname.split('/').filter(Boolean);
+  return chainId && value ? { chainId: chainId.toLowerCase(), value } : null;
+}
+
+/** dexscreener.com/<chain>/<pair or token>. Solana addresses come in lower case; see findTokens. */
 function fromDexScreener(url: URL): Found[] {
   const [chainId, value] = url.pathname.split('/').filter(Boolean);
-  const addr = address(value);
+  const addr = address(value) ?? (value && POOL_ID.test(value) ? value : undefined);
   if (!chainId || !addr) return [];
   const network = NETWORK_BY_DEXSCREENER[chainId.toLowerCase()];
   return [{ candidate: { address: addr, network, chainId: chainId.toLowerCase() }, source: 'url', score: URL_SCORE }];

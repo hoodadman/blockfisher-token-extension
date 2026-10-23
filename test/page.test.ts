@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { readPage } from '../src/readers/page';
+import { findTokens, readPage } from '../src/readers/page';
 
 const PEPE = '0x6982508145454Ce325dDbE47a25d4ec3d2311933';
 const BONK = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
@@ -61,5 +61,19 @@ describe('findTokens', () => {
     const { findTokens } = await import('../src/readers/page');
     const doc = page(`<a href="/solana/${BONK}">BONK</a>`);
     expect(findTokens(doc, 'https://dexscreener.com/')).toEqual([]);
+  });
+});
+
+describe('findTokens on DexScreener', () => {
+  const PAIR = 'Gc5W9CzeiUJxDzxfWBXFQeW6UEDb2RykErdhUDtzZt5p';
+  const href = `https://dexscreener.com/solana/${PAIR.toLowerCase()}`;
+
+  it('recovers the real spelling of a lower-case Solana pair from the page', () => {
+    const doc = page(`<div class="trending"><a href="/solana/${BONK.toLowerCase()}">BONK</a></div><script>window.pair="${PAIR}"</script>`);
+    expect(findTokens(doc, href).map((item) => item.candidate)).toEqual([{ address: PAIR, network: 'sol', chainId: 'solana' }]);
+  });
+
+  it('offers nothing until the page has loaded the pair', () => {
+    expect(findTokens(page(`<a href="https://solscan.io/token/${BONK}">BONK</a>`), href)).toEqual([]);
   });
 });

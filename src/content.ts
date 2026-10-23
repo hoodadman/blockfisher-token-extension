@@ -14,8 +14,8 @@ import css from './ui/card.css';
 
 const HOST_ID = 'blockfisher-auto-scan';
 const POLL_MS = 1_000;
-/** Pages on unknown sites often fill in after load; look again once. */
-const SECOND_LOOK_MS = 3_000;
+/** Pages fill in after load, so while nothing is found keep looking for this many seconds. */
+const EMPTY_LOOKS = 10;
 
 let root: HTMLElement | null = null;
 let lastKey = '';
@@ -116,12 +116,23 @@ async function check() {
 }
 
 let lastHref = '';
+let emptyLooks = 0;
 
-/** Reads the page again only when its address changes; these sites switch pages without reloading. */
+/**
+ * Reads the page again when its address changes (these sites switch pages without
+ * reloading), and every second for a while when nothing has been found yet.
+ */
 function tick() {
-  if (location.href === lastHref) return;
-  lastHref = location.href;
-  void check();
+  if (location.href !== lastHref) {
+    lastHref = location.href;
+    emptyLooks = 0;
+    void check();
+    return;
+  }
+  if (!lastKey && emptyLooks < EMPTY_LOOKS) {
+    emptyLooks += 1;
+    void check();
+  }
 }
 
 /** Looks at the page afresh, for when the switches change. */
@@ -145,8 +156,3 @@ chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, sendR
 tick();
 window.setInterval(tick, POLL_MS);
 window.addEventListener('popstate', tick);
-window.setTimeout(() => {
-  if (lastKey) return;
-  lastHref = '';
-  tick();
-}, SECOND_LOOK_MS);

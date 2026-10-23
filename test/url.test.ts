@@ -22,6 +22,8 @@ describe('readUrl', () => {
     expect(first(`https://dexscreener.com/ethereum/${PEPE}`)).toEqual({ address: PEPE, network: 'eth', chainId: 'ethereum' });
     expect(first(`https://dexscreener.com/arbitrum/${PEPE}`)).toEqual({ address: PEPE, network: undefined, chainId: 'arbitrum' });
     expect(readUrl('https://dexscreener.com/search?q=pepe')).toEqual([]);
+    const pool = `0x${'ab'.repeat(32)}`;
+    expect(first(`https://dexscreener.com/base/${pool}`)).toEqual({ address: pool, network: 'base', chainId: 'base' });
   });
 
   it('reads the CoinGecko coin id from the page address', () => {

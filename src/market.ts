@@ -10,6 +10,7 @@ import type { Candidate, IdentifiedToken, Network } from './readers/types';
 const DEXSCREENER = 'https://api.dexscreener.com';
 const COINGECKO = 'https://api.coingecko.com/api/v3';
 const TIMEOUT_MS = 15_000;
+const POOL_ID = /^0x[a-fA-F0-9]{64}$/;
 
 /** The fields of a DexScreener pair we read. */
 export interface DexPair {
@@ -104,7 +105,9 @@ async function identifyPair(address: string, chainId: string): Promise<Identifie
 
 async function identifyAddresses(candidates: ReadonlyArray<Extract<Candidate, { address: string }>>): Promise<IdentifiedToken[]> {
   if (candidates.length === 0) return [];
-  const body = await getJson<{ pairs?: DexPair[] | null }>(`${DEXSCREENER}/latest/dex/tokens/${candidates.map((item) => item.address).join(',')}`);
+  // Uniswap v4 pool ids are never tokens; they're looked up as pairs below.
+  const addresses = candidates.map((item) => item.address).filter((address) => !POOL_ID.test(address));
+  const body = addresses.length > 0 ? await getJson<{ pairs?: DexPair[] | null }>(`${DEXSCREENER}/latest/dex/tokens/${addresses.join(',')}`) : {};
   const pairs = body.pairs ?? [];
   return Promise.all(
     candidates.map(async (candidate): Promise<IdentifiedToken> => {
