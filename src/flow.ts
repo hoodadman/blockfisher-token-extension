@@ -1,11 +1,12 @@
 import type { ScanReport } from './api';
 import { candidateKey, type Candidate, type Found, type IdentifiedToken, type Network } from './readers/types';
-import type { CardState } from './ui/card';
+import { toneFor, type CardState } from './ui/card';
 
 /** Messages between the page (content script, popup) and the background worker. */
 export type Request =
   | { type: 'identify'; candidates: Candidate[] }
-  | { type: 'scan'; address: string; network?: Network };
+  | { type: 'scan'; address: string; network?: Network }
+  | { type: 'badge'; text: string; color: string };
 
 export type IdentifyReply = { ok: true; tokens: IdentifiedToken[] } | { ok: false; text: string };
 export type ScanReply = { ok: true; report: ScanReport } | { ok: false; text: string };
@@ -58,4 +59,26 @@ export async function scanAll(tokens: readonly IdentifiedToken[]): Promise<CardS
     results.push(reply.ok ? { token, report: reply.report } : { token, error: reply.text });
   }
   return { kind: 'results', results };
+}
+
+/** What the page card does next, given what was found and the user's switches. */
+export function autoStep(state: CardState, switches: { autoPopup: boolean; confirmToken: boolean }): 'scan' | 'show' | 'badge' {
+  if (state.kind === 'ask' && !switches.confirmToken) return 'scan';
+  return switches.autoPopup ? 'show' : 'badge';
+}
+
+const BADGE_COLOURS = { green: '#12805c', yellow: '#a06a00', orange: '#c2410c', red: '#c0262d', none: '#5b6577' };
+
+/**
+ * The toolbar icon's badge for a card: how many tokens are waiting, or the score once
+ * scanned. It's how the user sees what happened when the card doesn't pop up.
+ */
+export function badgeFor(state: CardState | null): { text: string; color: string } {
+  if (!state) return { text: '', color: BADGE_COLOURS.none };
+  if (state.kind === 'ask') return { text: String(state.tokens.length), color: '#0b5cd5' };
+  if (state.kind === 'loading') return { text: '…', color: BADGE_COLOURS.none };
+  if (state.kind === 'message') return { text: '!', color: BADGE_COLOURS.none };
+  const report = state.results.find((result) => result.report)?.report;
+  if (!report) return { text: '!', color: BADGE_COLOURS.red };
+  return { text: report.overall === null ? '–' : String(report.overall), color: BADGE_COLOURS[toneFor(report.overall)] };
 }

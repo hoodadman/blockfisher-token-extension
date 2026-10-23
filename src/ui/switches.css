@@ -1,0 +1,64 @@
+.bf-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.bf-switch + .bf-switch {
+  border-top: 1px solid var(--line, #dde2ea);
+}
+
+.bf-switch__text {
+  display: flex;
+  flex-direction: column;
+}
+
+.bf-switch__label {
+  font-weight: 600;
+}
+
+.bf-switch__hint {
+  color: var(--muted, #5b6577);
+  font-size: 12px;
+}
+
+.bf-switch input {
+  appearance: none;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: #b8c0cc;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bf-switch input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.15s;
+}
+
+.bf-switch input:checked {
+  background: #0b5cd5;
+}
+
+.bf-switch input:checked::after {
+  transform: translateX(16px);
+}
+
+.bf-switch input:focus-visible {
+  outline: 2px solid #0b5cd5;
+  outline-offset: 2px;
+}

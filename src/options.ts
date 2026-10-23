@@ -1,12 +1,12 @@
 import { NAMED_SITES } from './readers/url';
 import { loadSettings, setMode, type SiteMode } from './settings';
 import { forgetSite, isAllowedHere, requestSite, syncScripts } from './sites';
+import { renderSwitches } from './ui/switches';
 
 /** Settings page: what happens on each site, and the remembered sites. */
 
 const MODES: Array<[SiteMode, string]> = [
-  ['ask', 'Ask me'],
-  ['auto', 'Scan automatically'],
+  ['on', 'On'],
   ['off', 'Off'],
 ];
 
@@ -34,14 +34,14 @@ async function render() {
   const settings = await loadSettings();
 
   const named = document.getElementById('named') as HTMLUListElement;
-  named.replaceChildren(...NAMED_SITES.map((host) => row(host, modePicker(host, settings.modes[host] ?? 'ask'))));
+  named.replaceChildren(...NAMED_SITES.map((host) => row(host, modePicker(host, settings.modes[host] ?? 'on'))));
 
   const remembered = document.getElementById('remembered') as HTMLUListElement;
   const empty = document.getElementById('remembered-empty') as HTMLElement;
   empty.hidden = settings.remembered.length > 0;
   const rows = await Promise.all(
     settings.remembered.map(async (host) => {
-      const controls: HTMLElement[] = [modePicker(host, settings.modes[host] ?? 'ask')];
+      const controls: HTMLElement[] = [modePicker(host, settings.modes[host] ?? 'on')];
       if (!(await isAllowedHere(host))) {
         const allow = document.createElement('button');
         allow.type = 'button';
@@ -66,3 +66,4 @@ async function render() {
 }
 
 void render();
+void renderSwitches(document.getElementById('switches') as HTMLElement);
