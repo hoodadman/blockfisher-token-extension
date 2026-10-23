@@ -4,6 +4,7 @@ import { siteOf } from './readers/url';
 import { hostKey, loadSettings } from './settings';
 import { rememberSite, requestSite } from './sites';
 import { renderCard, tokenLabel, type CardState } from './ui/card';
+import { renderSwitches } from './ui/switches';
 
 /**
  * The toolbar popup. Works on any page: clicking the icon lets us read that one tab
@@ -20,11 +21,26 @@ function show(state: CardState, host?: string) {
       const allowed = remember && host ? requestSite(host) : Promise.resolve(false);
       void (async () => {
         if (host && (await allowed)) await rememberSite(host);
-        show({ kind: 'loading', label: `Checking ${tokens.map(tokenLabel).join(', ')}` });
-        show(await scanAll(tokens));
+        await runScans(tokens);
       })();
     },
   });
+}
+
+async function runScans(tokens: Parameters<typeof scanAll>[0]) {
+  show({ kind: 'loading', label: `Checking ${tokens.map(tokenLabel).join(', ')}` });
+  show(await scanAll(tokens));
+}
+
+/** The card the page already has, when auto pop up is off or the card was closed. */
+async function fromPage(tabId: number): Promise<CardState | null> {
+  try {
+    const state = (await chrome.tabs.sendMessage(tabId, { type: 'current' })) as CardState | null;
+    return state && state.kind !== 'loading' ? state : null;
+  } catch {
+    // No page reader on this tab.
+    return null;
+  }
 }
 
 async function readTab(tabId: number): Promise<Found[]> {
@@ -41,6 +57,13 @@ async function start() {
   const url = tab?.url ? new URL(tab.url) : null;
   if (!tab?.id || !url || url.protocol !== 'https:') {
     show({ kind: 'message', text: 'Open a token page on a trading site, then click Blockfisher again.' });
+    return;
+  }
+
+  const host = hostKey(url.hostname);
+  const onPage = await fromPage(tab.id);
+  if (onPage) {
+    show(onPage, host);
     return;
   }
 
@@ -62,11 +85,17 @@ async function start() {
     show({ kind: 'message', text: reply.text });
     return;
   }
-  const host = hostKey(url.hostname);
   const settings = await loadSettings();
   const offerRemember = !siteOf(url.hostname) && !settings.remembered.includes(host);
   const state = askState(found, reply.tokens, offerRemember);
+  // Keep the question when it carries the "remember this site" choice.
+  if (state?.kind === 'ask' && !offerRemember && !settings.switches.confirmToken) {
+    await runScans(state.tokens.slice(0, 1));
+    return;
+  }
   show(state ?? { kind: 'message', text: 'The addresses on this page don’t trade anywhere we can see, so there’s nothing to scan.' }, host);
 }
 
 void start();
+void renderSwitches(document.getElementById('switches') as HTMLElement);
+document.getElementById('more')?.addEventListener('click', () => void chrome.runtime.openOptionsPage());

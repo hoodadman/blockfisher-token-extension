@@ -2,6 +2,16 @@
 
 A Chrome extension that spots the token you're looking at and offers to check it. Open a token on DexScreener, CoinGecko, jup.ag, Uniswap, GMGN or Birdeye and a small card asks "Run a safety scan?". On any other site, click the Blockfisher icon. You can tick "Run auto scan on this site in future" to make that site work like the named ones.
 
+Three switches, in the icon's popup under **Settings** and on the settings page, change how it behaves at any time:
+
+| Switch | On (default) | Off |
+| --- | --- | --- |
+| Auto scan | Looks for tokens on supported sites by itself. | Only works when you click the icon. |
+| Auto pop up | Shows the card on the page. | Stays out of the way. The icon's badge shows the number of tokens found, or the score once scanned. Click the icon to see the card. |
+| Confirm token before scan | Asks "Run a safety scan?" first. | Scans the main token straight away. |
+
+Each site can also be turned on or off on the settings page.
+
 The scan itself runs on the Blockfisher token scanner (`blockfisher-token-scanner-v2`, endpoints described in its `docs/extension-api.md`). The extension holds no API keys.
 
 ## Build and load it
@@ -37,12 +47,12 @@ The scanner checks each address trades somewhere before the card shows, which dr
 | `src/content.ts` | Runs on named and remembered sites; shows the card. |
 | `src/popup.ts`, `src/reader.ts` | The toolbar popup, which reads the current tab on click. |
 | `src/background.ts` | Talks to the scanner; keeps remembered sites registered. |
-| `src/sites.ts`, `src/settings.ts` | Remembered sites and per-site choices (Ask me / Scan automatically / Off), in Chrome's synced storage. |
+| `src/sites.ts`, `src/settings.ts` | Remembered sites, per-site on/off and the three switches, in Chrome's synced storage. `src/ui/switches.ts` draws the switches. |
 | `src/ui/` | The card. |
 
 ## Permissions
 
-- `storage`: per-site choices and remembered sites.
+- `storage`: switches, per-site choices and remembered sites.
 - `activeTab`, `scripting`: read the current tab only when the user clicks the icon.
 - Content scripts on the six named sites.
 - `optional_host_permissions`: asked for one site at a time, only when the user ticks "Run auto scan on this site in future".

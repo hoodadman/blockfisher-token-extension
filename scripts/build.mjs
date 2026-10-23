@@ -30,8 +30,10 @@ await esbuild.build({ ...shared, entryPoints: ['src/reader.ts'], outfile: join(d
 await esbuild.build({ ...shared, entryPoints: ['src/popup.ts'], outfile: join(dist, 'popup.js'), format: 'esm' });
 await esbuild.build({ ...shared, entryPoints: ['src/options.ts'], outfile: join(dist, 'options.js'), format: 'esm' });
 
-for (const file of ['popup.html', 'options.html', 'options.css']) cpSync(join(root, 'src', file), join(dist, file));
-writeFileSync(join(dist, 'popup.css'), readFileSync(join(root, 'src/ui/card.css'), 'utf8') + readFileSync(join(root, 'src/popup.css'), 'utf8'));
+const read = (file) => readFileSync(join(root, 'src', file), 'utf8');
+for (const file of ['popup.html', 'options.html']) cpSync(join(root, 'src', file), join(dist, file));
+writeFileSync(join(dist, 'popup.css'), read('ui/card.css') + read('ui/switches.css') + read('popup.css'));
+writeFileSync(join(dist, 'options.css'), read('options.css') + read('ui/switches.css'));
 
 const manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8'));
 manifest.host_permissions = manifest.host_permissions.map((item) => item.replace('__API_ORIGIN__', apiBase));

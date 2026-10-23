@@ -1,14 +1,15 @@
-import { askState, scanAll, send } from './flow';
+import { askState, autoStep, badgeFor, scanAll, send } from './flow';
 import { findTokens } from './readers/page';
 import { candidateKey } from './readers/types';
-import { modeFor } from './settings';
+import { loadSettings, hostKey } from './settings';
 import { renderCard, tokenLabel, type CardState } from './ui/card';
 import css from './ui/card.css';
 
 /**
  * Runs on the named trading sites and on sites the user remembered. Watches for the
- * token on screen and asks "Run scan?". Nothing leaves the browser until the user says
- * yes, unless they picked "Scan automatically" for this site.
+ * token on screen and asks "Run scan?". What it does follows the user's switches: auto
+ * scan (watch at all), auto pop up (show the card, or only the icon's badge) and confirm
+ * token (ask first, or scan straight away). Nothing leaves the browser until a scan runs.
  */
 
 const HOST_ID = 'blockfisher-auto-scan';
@@ -18,6 +19,9 @@ const SECOND_LOOK_MS = 3_000;
 
 let root: HTMLElement | null = null;
 let lastKey = '';
+/** What the card shows, or would show; the popup reads it when the card stays hidden. */
+let current: CardState | null = null;
+let popup = true;
 const dismissed = new Set<string>();
 
 function mount(): HTMLElement {
@@ -34,11 +38,28 @@ function mount(): HTMLElement {
   return root;
 }
 
+function badge(state: CardState | null) {
+  chrome.runtime.sendMessage({ type: 'badge', ...badgeFor(state) }).catch(() => undefined);
+}
+
 function hide() {
   root?.replaceChildren();
 }
 
+function clear() {
+  current = null;
+  hide();
+  badge(null);
+}
+
+/** Records the state, shows it on the page when pop ups are on, and updates the badge. */
 function show(state: CardState, key: string) {
+  current = state;
+  badge(state);
+  if (!popup) {
+    hide();
+    return;
+  }
   renderCard(mount(), state, {
     onDismiss() {
       dismissed.add(key);
@@ -62,12 +83,18 @@ async function check() {
   if (key === lastKey) return;
   lastKey = key;
   if (!key || dismissed.has(key)) {
-    hide();
+    clear();
     return;
   }
 
-  const mode = await modeFor(location.hostname);
-  if (mode === 'off' || lastKey !== key) return;
+  const settings = await loadSettings();
+  if (lastKey !== key) return;
+  const { switches } = settings;
+  popup = switches.autoPopup;
+  if (!switches.autoScan || settings.modes[hostKey(location.hostname)] === 'off') {
+    clear();
+    return;
+  }
 
   const reply = await send({ type: 'identify', candidates: found.map((item) => item.candidate) });
   if (lastKey !== key) return;
@@ -78,10 +105,10 @@ async function check() {
   }
   const state = askState(found, reply.tokens, false);
   if (!state) {
-    hide();
+    clear();
     return;
   }
-  if (mode === 'auto' && state.kind === 'ask') {
+  if (state.kind === 'ask' && autoStep(state, switches) === 'scan') {
     await runScans(state.tokens.slice(0, 1), key);
     return;
   }
@@ -96,6 +123,24 @@ function tick() {
   lastHref = location.href;
   void check();
 }
+
+/** Looks at the page afresh, for when the switches change. */
+function recheck() {
+  lastKey = '';
+  lastHref = '';
+  tick();
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && (changes.switches || changes.modes)) recheck();
+});
+
+// The toolbar popup asks for the card when it isn't on the page.
+chrome.runtime.onMessage.addListener((message: { type?: string }, _sender, sendResponse) => {
+  if (message?.type !== 'current') return false;
+  sendResponse(current);
+  return false;
+});
 
 tick();
 window.setInterval(tick, POLL_MS);

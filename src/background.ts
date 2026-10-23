@@ -7,7 +7,15 @@ const failure = (error: unknown) => ({
   text: error instanceof ApiError ? error.message : 'Something went wrong. Please try again in a minute.',
 });
 
-chrome.runtime.onMessage.addListener((message: Request, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: Request, sender, sendResponse) => {
+  if (message?.type === 'badge') {
+    const tabId = sender.tab?.id;
+    if (tabId !== undefined) {
+      void chrome.action.setBadgeText({ tabId, text: message.text });
+      void chrome.action.setBadgeBackgroundColor({ tabId, color: message.color });
+    }
+    return false;
+  }
   if (message?.type === 'identify') {
     identify(message.candidates).then(
       (tokens): void => sendResponse({ ok: true, tokens } satisfies IdentifyReply),
