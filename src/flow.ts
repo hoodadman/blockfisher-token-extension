@@ -1,0 +1,61 @@
+import type { ScanReport } from './api';
+import { candidateKey, type Candidate, type Found, type IdentifiedToken, type Network } from './readers/types';
+import type { CardState } from './ui/card';
+
+/** Messages between the page (content script, popup) and the background worker. */
+export type Request =
+  | { type: 'identify'; candidates: Candidate[] }
+  | { type: 'scan'; address: string; network?: Network };
+
+export type IdentifyReply = { ok: true; tokens: IdentifiedToken[] } | { ok: false; text: string };
+export type ScanReply = { ok: true; report: ScanReport } | { ok: false; text: string };
+
+export function send(request: Extract<Request, { type: 'identify' }>): Promise<IdentifyReply>;
+export function send(request: Extract<Request, { type: 'scan' }>): Promise<ScanReply>;
+export function send(request: Request): Promise<IdentifyReply | ScanReply> {
+  return chrome.runtime.sendMessage(request).then(
+    (reply) => reply ?? { ok: false, text: 'Blockfisher stopped responding. Reload the page and try again.' },
+    () => ({ ok: false, text: 'Blockfisher stopped responding. Reload the page and try again.' }),
+  );
+}
+
+const keyOfInput = (input: string) => (input.startsWith('0x') ? `addr:${input.toLowerCase()}` : input.length >= 32 ? `addr:${input}` : `cg:${input}`);
+
+/**
+ * Builds the "Run scan?" card from what the page reader found and what /api/identify said.
+ * Keeps the reader's order (best first, common tokens last). Returns null when there is
+ * nothing worth showing, so the card stays hidden.
+ */
+export function askState(found: readonly Found[], identified: readonly IdentifiedToken[], offerRemember: boolean): CardState | null {
+  const byKey = new Map(found.map((item, index) => [candidateKey(item.candidate), { item, index }]));
+  const placed = identified.map((token) => ({ token, from: byKey.get(keyOfInput(token.input)) }));
+  placed.sort((a, b) => (a.from?.index ?? 99) - (b.from?.index ?? 99));
+
+  const seen = new Set<string>();
+  const tokens: IdentifiedToken[] = [];
+  const notes: string[] = [];
+  for (const { token, from } of placed) {
+    if (token.status === 'token' && token.address) {
+      const key = `${token.network}:${token.address.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      tokens.push(token);
+    } else if (token.message && from?.item.source === 'url' && token.status !== 'not-found') {
+      // Only explain the token the page is about (Bitcoin on CoinGecko), never stray text.
+      notes.push(token.message);
+    }
+  }
+  if (tokens.length === 0) return notes.length > 0 ? { kind: 'message', text: notes[0] } : null;
+  return { kind: 'ask', tokens: tokens.slice(0, 5), notes, offerRemember };
+}
+
+/** Scans the chosen tokens one after another and returns the results card. */
+export async function scanAll(tokens: readonly IdentifiedToken[]): Promise<CardState> {
+  const results: Extract<CardState, { kind: 'results' }>['results'] = [];
+  for (const token of tokens) {
+    if (!token.address) continue;
+    const reply = await send({ type: 'scan', address: token.address, network: token.network });
+    results.push(reply.ok ? { token, report: reply.report } : { token, error: reply.text });
+  }
+  return { kind: 'results', results };
+}
