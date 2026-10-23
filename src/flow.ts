@@ -24,7 +24,8 @@ export function send(request: Request): Promise<IdentifyReply | ScanReply> {
   );
 }
 
-const keyOfInput = (input: string) => (input.startsWith('0x') ? `addr:${input.toLowerCase()}` : input.length >= 32 ? `addr:${input}` : `cg:${input}`);
+const keyOfInput = (input: string) =>
+  input.startsWith('name:') ? input : input.startsWith('0x') ? `addr:${input.toLowerCase()}` : input.length >= 32 ? `addr:${input}` : `cg:${input}`;
 
 /**
  * Builds the "Run scan?" card from what the page reader found and what /api/identify said.
@@ -45,7 +46,7 @@ export function askState(found: readonly Found[], identified: readonly Identifie
       if (seen.has(key)) continue;
       seen.add(key);
       tokens.push(token);
-    } else if (token.message && from?.item.source === 'url' && token.status !== 'not-found') {
+    } else if (token.message && (from?.item.source === 'url' || from?.item.source === 'title') && token.status !== 'not-found') {
       // Only explain the token the page is about (Bitcoin on CoinGecko), never stray text.
       notes.push(token.message);
     }

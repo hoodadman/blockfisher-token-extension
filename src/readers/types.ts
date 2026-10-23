@@ -1,7 +1,10 @@
 /** Chains the scanner can check. */
 export type Network = 'eth' | 'base' | 'bsc' | 'sol';
 
-/** What we send to /api/identify: an address (maybe a DexScreener pair) or a CoinGecko coin id. */
+/**
+ * What the page reader found: an address (maybe a DexScreener pair), a CoinGecko coin id,
+ * or a coin's name and ticker read from the page title, looked up by search.
+ */
 export type Candidate =
   | {
       address: string;
@@ -9,9 +12,11 @@ export type Candidate =
       /** DexScreener's chain id, for chains we may not support (arbitrum, ...). */
       chainId?: string;
     }
-  | { coingeckoId: string };
+  | { coingeckoId: string }
+  | { coin: string; symbol: string };
 
-export type FoundSource = 'url' | 'link' | 'text';
+/** url and title describe the page itself; link and text are things mentioned on it. */
+export type FoundSource = 'url' | 'title' | 'link' | 'text';
 
 export interface Found {
   candidate: Candidate;
@@ -35,5 +40,12 @@ export interface IdentifiedToken {
   message?: string;
 }
 
+/** The input identify reports back for a name candidate. */
+export const nameInput = (coin: string) => `name:${coin.toLowerCase()}`;
+
 export const candidateKey = (candidate: Candidate): string =>
-  'coingeckoId' in candidate ? `cg:${candidate.coingeckoId}` : `addr:${candidate.address.startsWith('0x') ? candidate.address.toLowerCase() : candidate.address}`;
+  'coingeckoId' in candidate
+    ? `cg:${candidate.coingeckoId}`
+    : 'coin' in candidate
+      ? nameInput(candidate.coin)
+      : `addr:${candidate.address.startsWith('0x') ? candidate.address.toLowerCase() : candidate.address}`;

@@ -53,3 +53,11 @@ describe('askState', () => {
     expect(askState(found, [{ input: WALLET, status: 'not-found' }], false)).toBeNull();
   });
 });
+
+describe('askState with a coin read from the page title', () => {
+  it('explains a coin that has no contract', () => {
+    const found: Found[] = [{ candidate: { coin: 'Bittensor', symbol: 'TAO' }, source: 'title', score: 3 }];
+    const state = askState(found, [{ input: 'name:bittensor', status: 'not-a-contract', message: 'Bittensor is a coin with its own blockchain.' }], false);
+    expect(state).toEqual({ kind: 'message', text: 'Bittensor is a coin with its own blockchain.' });
+  });
+});

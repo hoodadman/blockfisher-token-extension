@@ -59,3 +59,23 @@ describe('identify with a Uniswap v4 pool id', () => {
     expect(fetchMock.mock.calls.some((call) => String(call[0]).includes('/tokens/'))).toBe(false);
   });
 });
+
+describe('identify by name', () => {
+  it('finds the coin by name and ticker through CoinGecko search', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.includes('/search?')
+          ? json({ coins: [{ id: 'tao-imposter', name: 'Bittensor', symbol: 'FAKE' }, { id: 'bittensor', name: 'Bittensor', symbol: 'TAO' }] })
+          : json({ name: 'Bittensor', symbol: 'tao', platforms: {} }),
+      ),
+    );
+    const [token] = await identify([{ coin: 'Bittensor', symbol: 'TAO' }]);
+    expect(token).toMatchObject({ input: 'name:bittensor', status: 'not-a-contract', name: 'Bittensor' });
+  });
+
+  it('gives up when no coin matches both name and ticker', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json({ coins: [{ id: 'x', name: 'Other', symbol: 'TAO' }] })));
+    expect(await identify([{ coin: 'Bittensor', symbol: 'TAO' }])).toEqual([{ input: 'name:bittensor', status: 'not-found', message: 'CoinGecko does not list this coin.' }]);
+  });
+});
