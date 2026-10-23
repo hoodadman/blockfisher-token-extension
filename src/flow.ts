@@ -25,7 +25,7 @@ export function send(request: Request): Promise<IdentifyReply | ScanReply> {
 }
 
 const keyOfInput = (input: string) =>
-  input.startsWith('name:') ? input : input.startsWith('0x') ? `addr:${input.toLowerCase()}` : input.length >= 32 ? `addr:${input}` : `cg:${input}`;
+  input.startsWith('name:') || input.startsWith('ticker:') ? input : input.startsWith('0x') ? `addr:${input.toLowerCase()}` : input.length >= 32 ? `addr:${input}` : `cg:${input}`;
 
 /**
  * Builds the "Run scan?" card from what the page reader found and what /api/identify said.

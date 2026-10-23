@@ -12,7 +12,7 @@ function page(html: string): Document {
 }
 
 const addresses = (html: string) =>
-  readPage(page(html), 'https://news.example/article').map((found) => ('address' in found.candidate ? found.candidate.address : 'coingeckoId' in found.candidate ? found.candidate.coingeckoId : found.candidate.coin));
+  readPage(page(html), 'https://news.example/article').map((found) => ('address' in found.candidate ? found.candidate.address : 'coingeckoId' in found.candidate ? found.candidate.coingeckoId : 'coin' in found.candidate ? found.candidate.coin : found.candidate.ticker));
 
 describe('readPage', () => {
   it('finds tokens from explorer and chart links, with the chain', () => {
@@ -78,6 +78,33 @@ describe('findTokens on DexScreener', () => {
   });
 });
 
+describe('findTokens on exchanges', () => {
+  const at = (href: string) => findTokens(page('<p>Order book</p>'), href).map((item) => item.candidate);
+
+  it('reads the coin from trading pairs in any style', () => {
+    expect(at('https://www.bitget.com/spot/TAOUSDT')).toEqual([{ ticker: 'TAO' }]);
+    expect(at('https://www.coinbase.com/advanced-trade/spot/TAO-USD')).toEqual([{ ticker: 'TAO' }]);
+    expect(at('https://pro.kraken.com/app/trade/tao-usd')).toEqual([{ ticker: 'TAO' }]);
+    expect(at('https://www.binance.com/en/trade/PEPE_USDT?type=spot')).toEqual([{ ticker: 'PEPE' }]);
+    expect(at('https://www.okx.com/trade-spot/pepe-usdt')).toEqual([{ ticker: 'PEPE' }]);
+    expect(at('https://www.bybit.com/en/trade/spot/PEPE/USDT')).toEqual([{ ticker: 'PEPE' }]);
+    expect(at('https://www.binance.com/en/futures/PEPEUSDT')).toEqual([{ ticker: 'PEPE' }]);
+  });
+
+  it('reads the coin from price pages', () => {
+    expect(at('https://www.coinbase.com/price/bittensor')).toEqual([{ coingeckoId: 'bittensor' }]);
+    expect(at('https://www.kraken.com/prices/bittensor')).toEqual([{ coingeckoId: 'bittensor' }]);
+    expect(at('https://www.okx.com/price/bittensor-tao')).toEqual([{ coingeckoId: 'bittensor-tao' }]);
+    expect(at('https://coinmarketcap.com/currencies/bittensor/')).toEqual([{ coingeckoId: 'bittensor' }]);
+  });
+
+  it('leaves ordinary addresses alone', () => {
+    expect(at('https://www.kraken.com/learn/what-is-usd')).toEqual([]);
+    expect(at('https://www.binance.com/en/trade')).toEqual([]);
+    expect(at('https://www.coinbase.com/spot/usdt')).toEqual([]);
+  });
+});
+
 describe('readTitle', () => {
   const titled = (title: string) => {
     const doc = page('<p>No addresses here.</p>');
@@ -86,9 +113,12 @@ describe('readTitle', () => {
   };
 
   it('reads the coin from common price-page titles', () => {
-    expect(findTokens(titled('Bittensor price today, TAO to USD live price, marketcap and chart | CoinMarketCap'), 'https://coinmarketcap.com/currencies/bittensor/').map((item) => item.candidate)).toEqual([
+    expect(findTokens(titled('Bittensor price today, TAO to USD live price, marketcap and chart | CoinMarketCap'), 'https://news.example/today').map((item) => item.candidate)).toEqual([
       { coin: 'Bittensor', symbol: 'TAO' },
     ]);
+    expect(readTitle(titled('Bittensor Price: TAO Live Price Chart, Market Cap & News Today | Coinbase')).map((item) => item.candidate)).toEqual([{ coin: 'Bittensor', symbol: 'TAO' }]);
+    expect(readTitle(titled('Bittensor Price (TAO), Market Cap & Charts')).map((item) => item.candidate)).toEqual([{ coin: 'Bittensor', symbol: 'TAO' }]);
+    expect(readTitle(titled('Bitcoin Price | Kraken'))).toEqual([]);
     expect(readTitle(titled('Pepe (PEPE) Price, Charts, and News')).map((item) => item.candidate)).toEqual([{ coin: 'Pepe', symbol: 'PEPE' }]);
     expect(readTitle(titled('My holiday photos'))).toEqual([]);
   });

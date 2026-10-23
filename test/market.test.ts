@@ -79,3 +79,43 @@ describe('identify by name', () => {
     expect(await identify([{ coin: 'Bittensor', symbol: 'TAO' }])).toEqual([{ input: 'name:bittensor', status: 'not-found', message: 'CoinGecko does not list this coin.' }]);
   });
 });
+
+describe('identify by ticker', () => {
+  it('takes the best-ranked coin with exactly that ticker', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.includes('/search?')
+          ? json({ coins: [
+              { id: 'pepe-fork', symbol: 'PEPE', market_cap_rank: 2400 },
+              { id: 'pepe-unranked', symbol: 'PEPE', market_cap_rank: null },
+              { id: 'pepecoin', symbol: 'PEPECOIN', market_cap_rank: 300 },
+              { id: 'pepe', symbol: 'PEPE', market_cap_rank: 40 },
+            ] })
+          : url.includes('/coins/pepe?')
+            ? json({ name: 'Pepe', symbol: 'pepe', platforms: { ethereum: PEPE } })
+            : json({}, 404),
+      ),
+    );
+    expect(await identify([{ ticker: 'PEPE' }])).toEqual([
+      { input: 'ticker:PEPE', status: 'token', address: PEPE, network: 'eth', chainName: 'Ethereum', name: 'Pepe', symbol: 'PEPE' },
+    ]);
+  });
+
+  it('finds OKX-style price pages that add the ticker to the name', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.includes('/search?query=bittensor%20tao')
+          ? json({ coins: [] })
+          : url.includes('/search?')
+            ? json({ coins: [{ id: 'bittensor', name: 'Bittensor', symbol: 'TAO' }] })
+            : url.includes('/coins/bittensor?')
+              ? json({ name: 'Bittensor', symbol: 'tao', platforms: {} })
+              : json({}, 404),
+      ),
+    );
+    const [token] = await identify([{ coingeckoId: 'bittensor-tao' }]);
+    expect(token).toMatchObject({ input: 'bittensor-tao', status: 'not-a-contract', name: 'Bittensor' });
+  });
+});
