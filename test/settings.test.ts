@@ -43,3 +43,16 @@ describe('badgeFor', () => {
     expect(badgeFor({ kind: 'results', results: [{ token: ask.tokens[0], error: 'x' }] }).text).toBe('!');
   });
 });
+
+describe('hostFromInput', () => {
+  it('reads the site from whatever the user typed', async () => {
+    const { hostFromInput } = await import('../src/settings');
+    expect(hostFromInput('example.com')).toBe('example.com');
+    expect(hostFromInput(' https://www.Pump.fun/board?x=1 ')).toBe('pump.fun');
+    expect(hostFromInput('photon-sol.tinyastro.io/en/lp/abc')).toBe('photon-sol.tinyastro.io');
+    expect(hostFromInput('http://example.com')).toBeNull();
+    expect(hostFromInput('localhost')).toBeNull();
+    expect(hostFromInput('not a site')).toBeNull();
+    expect(hostFromInput('')).toBeNull();
+  });
+});

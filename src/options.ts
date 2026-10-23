@@ -1,6 +1,6 @@
-import { NAMED_SITES } from './readers/url';
-import { loadSettings, setMode, type SiteMode } from './settings';
-import { forgetSite, isAllowedHere, requestSite, syncScripts } from './sites';
+import { NAMED_SITES, siteOf } from './readers/url';
+import { hostFromInput, loadSettings, setMode, type Settings, type SiteMode } from './settings';
+import { forgetSite, isAllowedHere, rememberSite, requestSite, syncScripts } from './sites';
 import { renderSwitches } from './ui/switches';
 
 /** Settings page: what happens on each site, and the remembered sites. */
@@ -30,8 +30,12 @@ function row(host: string, ...controls: HTMLElement[]): HTMLLIElement {
   return item;
 }
 
+/** The last settings shown, so adding a site can check them without waiting (see addSite). */
+let shown: Settings | undefined;
+
 async function render() {
   const settings = await loadSettings();
+  shown = settings;
 
   const named = document.getElementById('named') as HTMLUListElement;
   named.replaceChildren(...NAMED_SITES.map((host) => row(host, modePicker(host, settings.modes[host] ?? 'on'))));
@@ -65,5 +69,37 @@ async function render() {
   remembered.replaceChildren(...rows);
 }
 
+/** Adds a site before the user visits it. Chrome asks them to allow it there. */
+function addSite(event: SubmitEvent) {
+  event.preventDefault();
+  const input = document.getElementById('new-site') as HTMLInputElement;
+  const note = document.getElementById('add-site-note') as HTMLElement;
+  const host = hostFromInput(input.value);
+  if (!host) {
+    note.textContent = 'Type a website address, like example.com.';
+    return;
+  }
+  if (siteOf(host)) {
+    note.textContent = `${host} is already one of the trading sites above.`;
+    return;
+  }
+  if (shown?.remembered.includes(host)) {
+    note.textContent = `${host} is already on your list.`;
+    return;
+  }
+  // Chrome only shows its permission prompt inside the click, so ask before any await.
+  void requestSite(host).then(async (granted) => {
+    if (!granted) {
+      note.textContent = `Chrome didn’t allow ${host}, so it wasn’t added.`;
+      return;
+    }
+    await rememberSite(host);
+    input.value = '';
+    note.textContent = `Added ${host}. Auto scan will run there from the next time you open it.`;
+    await render();
+  });
+}
+
+document.getElementById('add-site')?.addEventListener('submit', addSite);
 void render();
 void renderSwitches(document.getElementById('switches') as HTMLElement);

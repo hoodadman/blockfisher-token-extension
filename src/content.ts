@@ -1,8 +1,8 @@
-import { askState, autoStep, badgeFor, scanAll, send } from './flow';
+import { askState, checkingLabel, autoStep, badgeFor, scanAll, send } from './flow';
 import { findTokens } from './readers/page';
 import { candidateKey } from './readers/types';
 import { loadSettings, hostKey } from './settings';
-import { renderCard, tokenLabel, type CardState } from './ui/card';
+import { renderCard, type CardState } from './ui/card';
 import css from './ui/card.css';
 
 /**
@@ -72,7 +72,7 @@ function show(state: CardState, key: string) {
 }
 
 async function runScans(tokens: Parameters<typeof scanAll>[0], key: string) {
-  show({ kind: 'loading', label: `Checking ${tokens.map(tokenLabel).join(', ')}` }, key);
+  show({ kind: 'loading', label: checkingLabel(tokens) }, key);
   const results = await scanAll(tokens);
   if (lastKey === key) show(results, key);
 }

@@ -67,3 +67,30 @@ button {
   font: inherit;
   padding: 4px 8px;
 }
+
+.add-site {
+  margin-top: 16px;
+}
+
+.add-site label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.add-site__row {
+  display: flex;
+  gap: 8px;
+}
+
+.add-site input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  padding: 4px 8px;
+}
+
+.add-site p {
+  min-height: 1.5em;
+  margin: 6px 0 0;
+}
