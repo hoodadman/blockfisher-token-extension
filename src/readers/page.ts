@@ -1,5 +1,5 @@
 import { NETWORK_BY_DEXSCREENER, isCommonToken, isSolanaAddress, isTokenAddress } from './address';
-import { dexScreenerPath, readUrl, siteOf } from './url';
+import { dexScreenerPath, readAnyUrl, readUrl, siteOf } from './url';
 import { candidateKey, type Candidate, type Found, type Network } from './types';
 
 /** Explorer token pages. A link to one of these is a strong hint. */
@@ -84,6 +84,7 @@ export function readPage(doc: Document, href: string): Found[] {
   };
 
   for (const found of readUrl(href)) add(found);
+  for (const found of readAnyUrl(href)) add(found);
 
   for (const anchor of Array.from(doc.querySelectorAll<HTMLAnchorElement>('a[href]'))) {
     if (anchor.closest('nav, footer')) continue;
@@ -136,13 +137,43 @@ function fromDexScreenerPage(doc: Document, href: string): Found[] {
   return [];
 }
 
+/** "Bittensor (TAO)", "Bittensor price today, TAO to USD", "Bittensor TAO Price". */
+const TITLE_PATTERNS = [
+  /^\s*([A-Za-z][\w .'&-]{1,40}?)\s*\(\$?([A-Za-z0-9]{2,10})\)/,
+  /^\s*([A-Za-z][\w .'&-]{1,40}?) price today,?\s+\$?([A-Za-z0-9]{2,10}) to [A-Z]{3}/i,
+  /^\s*([A-Za-z][\w .'&-]{1,40}?)\s+\$?([A-Z0-9]{2,10})\s+price\b/i,
+];
+
 /**
- * What to offer on this page. On the named sites the page address says which token is
- * open; their trending bars and lists are full of other tokens, so we don't read the page.
+ * Pages about a coin that has no address of its own on the page (Bitcoin, TAO): read the
+ * coin's name and ticker from the page title. Identify only accepts a CoinGecko coin whose
+ * name and ticker both match, so a stray title doesn't turn into a wrong token.
+ */
+export function readTitle(doc: Document): Found[] {
+  const titles = [doc.querySelector('meta[property="og:title"]')?.getAttribute('content'), doc.title];
+  for (const title of titles) {
+    for (const pattern of TITLE_PATTERNS) {
+      const match = title?.match(pattern);
+      if (match) return [{ candidate: { coin: match[1].trim(), symbol: match[2].toUpperCase() }, source: 'title', score: 3 }];
+    }
+  }
+  return [];
+}
+
+/**
+ * What to offer on this page, from most to least certain:
+ * 1. The page address, read by a site-specific reader or, on any site, for any address in it.
+ * 2. On named sites, nothing else: their trending bars and lists are full of other tokens.
+ * 3. Elsewhere, links and addresses on the page.
+ * 4. Failing that, the coin named in the page title.
  */
 export function findTokens(doc: Document, href: string): Found[] {
   const fromUrl = readUrl(href);
   if (fromUrl.length > 0) return fromUrl;
-  if (siteOf(new URL(href).hostname)) return fromDexScreenerPage(doc, href);
-  return readPage(doc, href);
+  if (siteOf(new URL(href).hostname)) {
+    const anyUrl = readAnyUrl(href);
+    return anyUrl.length > 0 ? rank(anyUrl) : fromDexScreenerPage(doc, href);
+  }
+  const onPage = readPage(doc, href);
+  return onPage.length > 0 ? onPage : readTitle(doc);
 }

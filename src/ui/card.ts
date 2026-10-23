@@ -12,11 +12,13 @@ export type CardState =
   | { kind: 'ask'; tokens: IdentifiedToken[]; notes: string[]; offerRemember: boolean }
   | { kind: 'loading'; label: string }
   | { kind: 'results'; results: Array<{ token: IdentifiedToken; report?: ScanReport; error?: string }> }
-  | { kind: 'message'; text: string };
+  | { kind: 'message'; text: string; offerRemember?: boolean };
 
 export interface CardHandlers {
   onScan(tokens: IdentifiedToken[], remember: boolean): void;
   onDismiss(): void;
+  /** Turn on auto scan for this site. Only offered in the toolbar popup on unknown sites. */
+  onRemember?(): void;
 }
 
 type Tone = 'green' | 'yellow' | 'orange' | 'red' | 'none';
@@ -67,7 +69,7 @@ function askView(state: Extract<CardState, { kind: 'ask' }>, handlers: CardHandl
   if (tokens.length === 1) {
     body.append(el('p', 'bf__question', `Blockfisher found ${tokenLabel(tokens[0])}. Run a safety scan?`));
   } else {
-    body.append(el('p', 'bf__question', `Blockfisher found ${tokens.length} tokens on this page. Which should we check?`));
+    body.append(el('p', 'bf__question', `Blockfisher found ${tokens.length} tokens on this page. Which should we check? You can pick more than one.`));
   }
 
   const boxes: Array<{ box: HTMLInputElement; token: IdentifiedToken }> = [];
@@ -183,6 +185,12 @@ export function renderCard(root: HTMLElement, state: CardState, handlers: CardHa
   if (state.kind === 'message') {
     const body = el('div', 'bf__body');
     body.append(el('p', undefined, state.text));
+    if (state.offerRemember && handlers.onRemember) {
+      const remember = el('button', 'bf__secondary', 'Run auto scan on this site in future');
+      remember.type = 'button';
+      remember.addEventListener('click', handlers.onRemember);
+      body.append(remember);
+    }
     card.append(body);
   }
   if (state.kind === 'results') {

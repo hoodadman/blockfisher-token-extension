@@ -120,6 +120,49 @@ function fromBirdeye(url: URL): Found[] {
   return [token(addr, chain ? BIRDEYE_CHAIN[chain] : EVM_ADDRESS.test(addr) ? undefined : 'sol')];
 }
 
+/** Query keys for the token being bought or looked at, and for the one being sold. */
+const WANTED_KEYS = /^(buy|to|output|outputmint|outputcurrency|tokenout|token|tokenaddress|address|ca|mint|contract|inputtoken)$/i;
+const SOLD_KEYS = /^(sell|from|input|inputmint|inputcurrency|tokenin)$/i;
+const CHAIN_WORDS: Record<string, Network> = {
+  eth: 'eth', ethereum: 'eth', mainnet: 'eth', base: 'base', bsc: 'bsc', bnb: 'bsc', sol: 'sol', solana: 'sol',
+};
+
+/**
+ * Token addresses anywhere in a page address, on any site: path parts (/solana/<mint>,
+ * /token/<address>) and query values (?sell=..&buy=..). Swap links name two tokens; the one
+ * being bought ranks first. Site-specific readers above know more, so they win when they apply.
+ */
+export function readAnyUrl(href: string): Found[] {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return [];
+  }
+  const found: Found[] = [];
+  const seen = new Set<string>();
+  const push = (value: string, network: Network | undefined, score: number) => {
+    let text = value;
+    try {
+      text = decodeURIComponent(value);
+    } catch {
+      // Keep it as it is.
+    }
+    const addr = address(text);
+    if (!addr || seen.has(addr.toLowerCase())) return;
+    seen.add(addr.toLowerCase());
+    found.push(token(addr, network ?? (EVM_ADDRESS.test(addr) ? undefined : 'sol'), score));
+  };
+
+  const parts = url.pathname.split('/').filter(Boolean);
+  parts.forEach((part, index) => push(part, CHAIN_WORDS[parts[index - 1]?.toLowerCase() ?? ''], URL_SCORE - 1));
+  const chain = CHAIN_WORDS[(url.searchParams.get('chain') ?? url.searchParams.get('network') ?? '').toLowerCase()];
+  for (const [key, value] of url.searchParams) {
+    push(value, chain, WANTED_KEYS.test(key) ? URL_SCORE : SOLD_KEYS.test(key) ? URL_SCORE - 2 : URL_SCORE - 3);
+  }
+  return found.sort((a, b) => b.score - a.score);
+}
+
 export function siteOf(hostname: string): (typeof NAMED_SITES)[number] | undefined {
   const host = hostname.toLowerCase().replace(/^www\./, '');
   return NAMED_SITES.find((site) => host === site);

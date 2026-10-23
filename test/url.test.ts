@@ -1,6 +1,7 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { isSolanaAddress } from '../src/readers/address';
-import { readUrl, siteOf } from '../src/readers/url';
+import { readAnyUrl, readUrl, siteOf } from '../src/readers/url';
 
 const PEPE = '0x6982508145454Ce325dDbE47a25d4ec3d2311933';
 const BONK = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
@@ -53,5 +54,25 @@ describe('readUrl', () => {
     expect(siteOf('www.dexscreener.com')).toBe('dexscreener.com');
     expect(siteOf('evil-dexscreener.com')).toBeUndefined();
     expect(readUrl(`https://example.com/ethereum/${PEPE}`)).toEqual([]);
+  });
+});
+
+describe('readAnyUrl', () => {
+  const SIGMA = '5SVG3T9CNQsm2kEwzbRq6hASqh1oGfjqTtLXYUibpump';
+
+  it('reads both sides of a swap link on any app, the bought or main token first', async () => {
+    const { findTokens } = await import('../src/readers/page');
+    const doc = document.implementation.createHTMLDocument('');
+    const found = findTokens(doc, `https://jup.ag/?sell=${SIGMA}&buy=${SOL}`);
+    expect(found.map((item) => item.candidate)).toEqual([
+      { address: SIGMA, network: 'sol' },
+      { address: SOL, network: 'sol' },
+    ]);
+  });
+
+  it('finds addresses in the path and query of sites it has never seen', () => {
+    expect(readAnyUrl(`https://raydium.io/swap/?inputMint=sol&outputMint=${BONK}`).map((item) => item.candidate)).toEqual([{ address: BONK, network: 'sol' }]);
+    expect(readAnyUrl(`https://app.example/token/base/${PEPE}`).map((item) => item.candidate)).toEqual([{ address: PEPE, network: 'base' }]);
+    expect(readAnyUrl('https://news.example/article?id=123')).toEqual([]);
   });
 });

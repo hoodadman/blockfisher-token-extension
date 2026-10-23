@@ -35,7 +35,8 @@ BLOCKFISHER_API=http://localhost:5181 npm run build
 | CoinGecko | `/coins/<id>` in the page address. The scanner looks up the coin's contracts. |
 | jup.ag | `/swap/<sell>-<buy>`, `?sell=&buy=`, `?inputMint=&outputMint=` or `/tokens/<mint>`. The buy side comes first. |
 | Uniswap, GMGN, Birdeye | The token address in the page address. |
-| Any other site | Links to explorers and charts (Etherscan, Basescan, BscScan, Solscan, pump.fun, DexScreener and the sites above), then addresses in the page text, with ones labelled "CA" or "Contract" first. |
+| Any site, named or not | Any token address in the page address: path parts (`/token/<address>`) and query values (`?sell=..&buy=..`, `outputMint=`). On a swap the token being bought ranks first, and both are offered. |
+| Any other site | Also links to explorers and charts (Etherscan, Basescan, BscScan, Solscan, pump.fun, DexScreener and the sites above), then addresses in the page text, with ones labelled "CA" or "Contract" first. Failing all that, the coin named in the page title ("Bittensor (TAO)", "Bittensor price today, TAO to USD"), accepted only when CoinGecko has a coin with that name and ticker. |
 
 The scanner checks each address trades somewhere before the card shows, which drops wallet addresses. Stablecoins and wrapped SOL/ETH are listed last.
 

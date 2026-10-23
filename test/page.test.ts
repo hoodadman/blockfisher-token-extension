@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { findTokens, readPage } from '../src/readers/page';
+import { findTokens, readPage, readTitle } from '../src/readers/page';
 
 const PEPE = '0x6982508145454Ce325dDbE47a25d4ec3d2311933';
 const BONK = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
@@ -12,7 +12,7 @@ function page(html: string): Document {
 }
 
 const addresses = (html: string) =>
-  readPage(page(html), 'https://news.example/article').map((found) => ('address' in found.candidate ? found.candidate.address : found.candidate.coingeckoId));
+  readPage(page(html), 'https://news.example/article').map((found) => ('address' in found.candidate ? found.candidate.address : 'coingeckoId' in found.candidate ? found.candidate.coingeckoId : found.candidate.coin));
 
 describe('readPage', () => {
   it('finds tokens from explorer and chart links, with the chain', () => {
@@ -75,5 +75,27 @@ describe('findTokens on DexScreener', () => {
 
   it('offers nothing until the page has loaded the pair', () => {
     expect(findTokens(page(`<a href="https://solscan.io/token/${BONK}">BONK</a>`), href)).toEqual([]);
+  });
+});
+
+describe('readTitle', () => {
+  const titled = (title: string) => {
+    const doc = page('<p>No addresses here.</p>');
+    doc.title = title;
+    return doc;
+  };
+
+  it('reads the coin from common price-page titles', () => {
+    expect(findTokens(titled('Bittensor price today, TAO to USD live price, marketcap and chart | CoinMarketCap'), 'https://coinmarketcap.com/currencies/bittensor/').map((item) => item.candidate)).toEqual([
+      { coin: 'Bittensor', symbol: 'TAO' },
+    ]);
+    expect(readTitle(titled('Pepe (PEPE) Price, Charts, and News')).map((item) => item.candidate)).toEqual([{ coin: 'Pepe', symbol: 'PEPE' }]);
+    expect(readTitle(titled('My holiday photos'))).toEqual([]);
+  });
+
+  it('prefers addresses on the page over the title', () => {
+    const doc = page(`<p>CA: ${BONK}</p>`);
+    doc.title = 'Bonk (BONK) price';
+    expect(findTokens(doc, 'https://news.example/bonk').map((item) => item.candidate)).toEqual([{ address: BONK }]);
   });
 });

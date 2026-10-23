@@ -16,6 +16,19 @@ const root = document.getElementById('root') as HTMLElement;
 function show(state: CardState, host?: string) {
   renderCard(root, state, {
     onDismiss: () => window.close(),
+    onRemember() {
+      if (!host) return;
+      // Chrome only shows its permission prompt inside the click, so ask before any await.
+      void requestSite(host).then(async (granted) => {
+        if (granted) await rememberSite(host);
+        show({
+          kind: 'message',
+          text: granted
+            ? `Auto scan is on for ${host}. It will look for tokens each time you open a page there.`
+            : `Chrome didn’t allow ${host}, so auto scan stays off there.`,
+        });
+      });
+    },
     onScan(tokens, remember) {
       // Chrome only shows its permission prompt inside the click, so ask before any await.
       const allowed = remember && host ? requestSite(host) : Promise.resolve(false);
@@ -75,8 +88,10 @@ async function start() {
     show({ kind: 'message', text: 'Chrome doesn’t let extensions read this page.' });
     return;
   }
+  const settings = await loadSettings();
+  const offerRemember = !siteOf(url.hostname) && !settings.remembered.includes(host);
   if (found.length === 0) {
-    show({ kind: 'message', text: 'We couldn’t find a token on this page. Open the token’s own page and try again.' });
+    show({ kind: 'message', text: 'We couldn’t find a token on this page. Open the token’s own page and try again.', offerRemember }, host);
     return;
   }
 
@@ -85,15 +100,17 @@ async function start() {
     show({ kind: 'message', text: reply.text });
     return;
   }
-  const settings = await loadSettings();
-  const offerRemember = !siteOf(url.hostname) && !settings.remembered.includes(host);
   const state = askState(found, reply.tokens, offerRemember);
   // Keep the question when it carries the "remember this site" choice.
   if (state?.kind === 'ask' && !offerRemember && !settings.switches.confirmToken) {
     await runScans(state.tokens.slice(0, 1));
     return;
   }
-  show(state ?? { kind: 'message', text: 'The addresses on this page don’t trade anywhere we can see, so there’s nothing to scan.' }, host);
+  if (state?.kind === 'message') {
+    show({ ...state, offerRemember }, host);
+    return;
+  }
+  show(state ?? { kind: 'message', text: 'The addresses on this page don’t trade anywhere we can see, so there’s nothing to scan.', offerRemember }, host);
 }
 
 void start();

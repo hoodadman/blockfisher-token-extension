@@ -1,4 +1,4 @@
-import type { Candidate, IdentifiedToken, Network } from './readers/types';
+import { nameInput, type Candidate, type IdentifiedToken, type Network } from './readers/types';
 
 /**
  * Market data fetched from the user's own browser. DexScreener and CoinGecko rate-limit
@@ -126,13 +126,38 @@ async function identifyAddresses(candidates: ReadonlyArray<Extract<Candidate, { 
   );
 }
 
-async function identifyCoinGecko(id: string): Promise<IdentifiedToken[]> {
+const plain = (text?: string) => (text ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** CoinGecko's id for a coin name (and ticker, when known), or undefined when nothing matches closely. */
+async function searchCoinGecko(query: string, symbol?: string): Promise<string | undefined> {
+  const body = await getJson<{ coins?: Array<{ id?: string; name?: string; symbol?: string }> }>(
+    `${COINGECKO}/search?query=${encodeURIComponent(query.replace(/-/g, ' '))}`,
+  ).catch(() => ({ coins: [] }));
+  const wanted = plain(query);
+  return body.coins?.find(
+    (coin) => (plain(coin.id) === wanted || plain(coin.name) === wanted) && (!symbol || plain(coin.symbol) === plain(symbol)),
+  )?.id;
+}
+
+/** A coin named in the page title, like "Bittensor (TAO)". */
+async function identifyByName(name: string, symbol: string): Promise<IdentifiedToken[]> {
+  const input = nameInput(name);
+  const id = await searchCoinGecko(name, symbol);
+  if (!id) return [{ input, status: 'not-found', message: 'CoinGecko does not list this coin.' }];
+  return (await identifyCoinGecko(id, true)).map((token) => ({ ...token, input }));
+}
+
+async function identifyCoinGecko(id: string, retried = false): Promise<IdentifiedToken[]> {
   let coin: { name?: string; symbol?: string; platforms?: Record<string, string | null> | null };
   try {
     coin = await getJson(`${COINGECKO}/coins/${encodeURIComponent(id)}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`);
   } catch (error) {
-    if (error instanceof MarketError && error.status === 404) return [{ input: id, status: 'not-found', message: 'CoinGecko does not list this coin.' }];
-    throw error;
+    if (!(error instanceof MarketError && error.status === 404)) throw error;
+    // Other sites' names for a coin (CoinMarketCap's "bittensor") are usually CoinGecko's
+    // too, but not always; ask CoinGecko's search for the closest match.
+    const match = !retried ? await searchCoinGecko(id) : undefined;
+    if (match) return (await identifyCoinGecko(match, true)).map((token) => ({ ...token, input: id }));
+    return [{ input: id, status: 'not-found', message: 'CoinGecko does not list this coin.' }];
   }
   const platforms = Object.entries(coin.platforms ?? {}).filter(
     (entry): entry is [string, string] => Boolean(entry[0]) && typeof entry[1] === 'string' && entry[1].length > 0,
@@ -155,7 +180,12 @@ async function identifyCoinGecko(id: string): Promise<IdentifiedToken[]> {
 export async function identify(candidates: readonly Candidate[]): Promise<IdentifiedToken[]> {
   const addresses = candidates.filter((item): item is Extract<Candidate, { address: string }> => 'address' in item);
   const coins = candidates.filter((item): item is Extract<Candidate, { coingeckoId: string }> => 'coingeckoId' in item);
-  const [fromAddresses, ...fromCoins] = await Promise.all([identifyAddresses(addresses), ...coins.map((coin) => identifyCoinGecko(coin.coingeckoId))]);
+  const named = candidates.filter((item): item is Extract<Candidate, { coin: string }> => 'coin' in item);
+  const [fromAddresses, ...fromCoins] = await Promise.all([
+    identifyAddresses(addresses),
+    ...coins.map((coin) => identifyCoinGecko(coin.coingeckoId)),
+    ...named.map((coin) => identifyByName(coin.coin, coin.symbol)),
+  ]);
   return [...fromAddresses, ...fromCoins.flat()];
 }
 
