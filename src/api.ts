@@ -26,6 +26,8 @@ export interface ScanReport {
   foundation: { score: number | null };
   brief: { security: string; community: string; foundation: string };
   failures: Array<{ source: string }>;
+  /** When shared parts were fetched (ms). The scanner shares X and holder data between users for a while. */
+  checked?: { community?: number; holders?: number };
 }
 
 export class ApiError extends Error {}
@@ -65,8 +67,9 @@ export async function identify(candidates: readonly Candidate[]): Promise<Identi
 }
 
 /** Market data comes from the user's browser; the scanner scores it with its own checks. */
-export async function scan(address: string, network?: Network): Promise<ScanReport> {
+export async function scan(address: string, network?: Network, refresh = false): Promise<ScanReport> {
   const market = network ? await marketData(address, network) : {};
-  const reply = await post<{ report: ScanReport }>('/api/scan', { address, network, ...market });
+  // refresh: a re-check, which skips answers shared from other users' scans.
+  const reply = await post<{ report: ScanReport }>('/api/scan', { address, network, ...market, ...(refresh ? { refresh } : {}) });
   return reply.report;
 }

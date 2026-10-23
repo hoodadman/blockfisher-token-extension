@@ -407,3 +407,20 @@
   width: 100%;
   margin-top: 8px;
 }
+
+/* "Re-check" in the "Community checked 6 hours ago" line. */
+.bf__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.bf__link:disabled {
+  cursor: default;
+  text-decoration: none;
+}

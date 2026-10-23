@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ScanReport } from '../src/api';
 import type { IdentifiedToken } from '../src/readers/types';
-import { renderCard } from '../src/ui/card';
+import { ago, checkedText, renderCard } from '../src/ui/card';
 
 const pepe: IdentifiedToken = { input: 'x', status: 'token', address: '0x6982508145454Ce325dDbE47a25d4ec3d2311933', network: 'eth', chainName: 'Ethereum', symbol: 'PEPE' };
 const bonk: IdentifiedToken = { input: 'y', status: 'token', address: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', network: 'sol', chainName: 'Solana', symbol: 'BONK' };
@@ -63,5 +63,41 @@ describe('"as well?" button', () => {
     click(root, 'Scan SOL as well?');
     expect(onScanMore).toHaveBeenCalledWith(sol);
     expect(root.textContent).toContain('Checking SOL on Solana');
+  });
+});
+
+describe('shared answers', () => {
+  const now = 1_000_000_000;
+  const report: ScanReport = {
+    address: pepe.address!,
+    chain: { name: 'Ethereum', network: 'eth' },
+    symbol: 'PEPE',
+    overall: 80,
+    security: { score: 80, band: 'low', issues: [], notChecked: [] },
+    community: { score: 80 },
+    foundation: { score: 80 },
+    brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+    failures: [],
+  };
+
+  it('says how old shared parts are, and nothing when they are fresh', () => {
+    expect(ago(now - 40 * 60_000, now)).toBe('40 minutes ago');
+    expect(ago(now - 6 * 3_600_000, now)).toBe('6 hours ago');
+    expect(checkedText({ ...report, checked: { community: now - 6 * 3_600_000, holders: now - 30_000 } }, now)).toBe(
+      'Community checked 6 hours ago. Security checked just now.',
+    );
+    expect(checkedText({ ...report, checked: { community: now - 60_000 } }, now)).toBeNull();
+    expect(checkedText(report, now)).toBeNull();
+  });
+
+  it('offers a re-check for an older shared result', () => {
+    const onRecheck = vi.fn();
+    const root = document.createElement('div');
+    const old = { ...report, checked: { community: Date.now() - 3 * 3_600_000 } };
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report: old }] }, { onScan: vi.fn(), onDismiss: vi.fn(), onRecheck });
+    expect(root.textContent).toContain('Community checked 3 hours ago');
+    click(root, 'Re-check');
+    expect(onRecheck).toHaveBeenCalledWith(0);
+    expect(root.textContent).toContain('Checking…');
   });
 });
