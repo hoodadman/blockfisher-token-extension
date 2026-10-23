@@ -1,7 +1,7 @@
 import type { ScanReport } from '../api';
 import type { IdentifiedToken } from '../readers/types';
-import { scoreChart } from './chart';
-import { diveLayer } from './dive';
+import { fillUp, scoreChart } from './chart';
+import { DIVE_CLEAR_MS, diveLayer } from './dive';
 
 /**
  * The "Run scan?" card and the results. Plain DOM, so it can live in a shadow root on any
@@ -195,6 +195,8 @@ export function renderCard(root: HTMLElement, state: CardState, handlers: CardHa
     if (state.results.some((result) => result.report)) {
       card.classList.add('bf--dive');
       card.append(diveLayer());
+      // Once the water clears, fill the triangles up to their scores.
+      card.querySelectorAll<HTMLElement>('.bf-chart').forEach((chart) => fillUp(chart, DIVE_CLEAR_MS));
     }
   }
   root.append(card);
