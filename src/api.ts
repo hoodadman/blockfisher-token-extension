@@ -6,7 +6,8 @@ declare const __API_BASE__: string;
 /** The Blockfisher scanner. Set BLOCKFISHER_API when building (see scripts/build.mjs). */
 export const API_BASE = __API_BASE__;
 
-const TIMEOUT_MS = 60_000;
+/** Long enough for the scanner to wake from sleep (about a minute) and then scan. */
+const TIMEOUT_MS = 120_000;
 
 /** The parts of the scanner's ScanReport the card shows. */
 export interface ScanReport {

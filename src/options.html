@@ -19,8 +19,16 @@
       <ul id="named" class="sites"></ul>
 
       <h2>Sites you added</h2>
-      <p id="remembered-empty" class="muted">None yet. On any other site, click the Blockfisher icon and tick "Run auto scan on this site in future".</p>
+      <p id="remembered-empty" class="muted">None yet. Add one below, or on any other site click the Blockfisher icon and tick "Run auto scan on this site in future".</p>
       <ul id="remembered" class="sites"></ul>
+      <form id="add-site" class="add-site">
+        <label for="new-site">Add a site</label>
+        <div class="add-site__row">
+          <input id="new-site" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="example.com" />
+          <button type="submit">Add</button>
+        </div>
+        <p id="add-site-note" class="muted" aria-live="polite"></p>
+      </form>
 
       <h2>Privacy</h2>
       <p>Blockfisher reads token addresses on the page inside your browser. Only the token address and its chain are sent: to DexScreener and CoinGecko to look up its market data, and to Blockfisher to check it. We never send the page address, your browsing history or your wallet.</p>

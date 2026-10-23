@@ -1,4 +1,4 @@
-import { ApiError, identify, scan } from './api';
+import { API_BASE, ApiError, identify, scan } from './api';
 import type { IdentifyReply, Request, ScanReply } from './flow';
 import { syncScripts } from './sites';
 
@@ -6,6 +6,34 @@ const failure = (error: unknown) => ({
   ok: false as const,
   text: error instanceof ApiError ? error.message : 'Something went wrong. Please try again in a minute.',
 });
+
+/**
+ * Chrome stops an idle extension worker after 30 seconds, even while a fetch is waiting,
+ * which dropped long scans. Calling any extension API resets that clock, so do that
+ * while work is in flight.
+ */
+let inFlight = 0;
+let heartbeat: ReturnType<typeof setInterval> | undefined;
+
+function keepAlive<T>(work: Promise<T>): Promise<T> {
+  inFlight += 1;
+  heartbeat ??= setInterval(() => void chrome.runtime.getPlatformInfo(), 20_000);
+  return work.finally(() => {
+    inFlight -= 1;
+    if (inFlight === 0 && heartbeat !== undefined) {
+      clearInterval(heartbeat);
+      heartbeat = undefined;
+    }
+  });
+}
+
+/** The scanner sleeps when unused and takes up to a minute to wake, so wake it as soon as a token is spotted. */
+let lastWake = 0;
+function wakeScanner() {
+  if (Date.now() - lastWake < 60_000) return;
+  lastWake = Date.now();
+  void keepAlive(fetch(`${API_BASE}/`, { method: 'HEAD', signal: AbortSignal.timeout(90_000) }).catch(() => undefined));
+}
 
 chrome.runtime.onMessage.addListener((message: Request, sender, sendResponse) => {
   if (message?.type === 'badge') {
@@ -17,14 +45,15 @@ chrome.runtime.onMessage.addListener((message: Request, sender, sendResponse) =>
     return false;
   }
   if (message?.type === 'identify') {
-    identify(message.candidates).then(
+    wakeScanner();
+    keepAlive(identify(message.candidates)).then(
       (tokens): void => sendResponse({ ok: true, tokens } satisfies IdentifyReply),
       (error): void => sendResponse(failure(error) satisfies IdentifyReply),
     );
     return true;
   }
   if (message?.type === 'scan') {
-    scan(message.address, message.network).then(
+    keepAlive(scan(message.address, message.network)).then(
       (report): void => sendResponse({ ok: true, report } satisfies ScanReply),
       (error): void => sendResponse(failure(error) satisfies ScanReply),
     );

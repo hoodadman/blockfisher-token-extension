@@ -1,9 +1,9 @@
-import { askState, scanAll, send } from './flow';
+import { askState, checkingLabel, scanAll, send } from './flow';
 import type { Found } from './readers/types';
 import { siteOf } from './readers/url';
 import { hostKey, loadSettings } from './settings';
 import { rememberSite, requestSite } from './sites';
-import { renderCard, tokenLabel, type CardState } from './ui/card';
+import { renderCard, type CardState } from './ui/card';
 import { renderSwitches } from './ui/switches';
 
 /**
@@ -28,7 +28,7 @@ function show(state: CardState, host?: string) {
 }
 
 async function runScans(tokens: Parameters<typeof scanAll>[0]) {
-  show({ kind: 'loading', label: `Checking ${tokens.map(tokenLabel).join(', ')}` });
+  show({ kind: 'loading', label: checkingLabel(tokens) });
   show(await scanAll(tokens));
 }
 

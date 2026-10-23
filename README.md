@@ -10,7 +10,7 @@ Three switches, in the icon's popup under **Settings** and on the settings page,
 | Auto pop up | Shows the card on the page. | Stays out of the way. The icon's badge shows the number of tokens found, or the score once scanned. Click the icon to see the card. |
 | Confirm token before scan | Asks "Run a safety scan?" first. | Scans the main token straight away. |
 
-Each site can also be turned on or off on the settings page.
+Each site can also be turned on or off on the settings page, and new sites can be added there by address before visiting them.
 
 The scan itself runs on the Blockfisher token scanner (`blockfisher-token-scanner-v2`, endpoints described in its `docs/extension-api.md`). The extension holds no API keys.
 

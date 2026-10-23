@@ -1,6 +1,6 @@
 import type { ScanReport } from './api';
 import { candidateKey, type Candidate, type Found, type IdentifiedToken, type Network } from './readers/types';
-import { toneFor, type CardState } from './ui/card';
+import { tokenLabel, toneFor, type CardState } from './ui/card';
 
 /** Messages between the page (content script, popup) and the background worker. */
 export type Request =
@@ -8,15 +8,19 @@ export type Request =
   | { type: 'scan'; address: string; network?: Network }
   | { type: 'badge'; text: string; color: string };
 
-export type IdentifyReply = { ok: true; tokens: IdentifiedToken[] } | { ok: false; text: string };
-export type ScanReply = { ok: true; report: ScanReport } | { ok: false; text: string };
+/** dropped: the background worker went away before answering. */
+type Failure = { ok: false; text: string; dropped?: true };
+export type IdentifyReply = { ok: true; tokens: IdentifiedToken[] } | Failure;
+export type ScanReply = { ok: true; report: ScanReport } | Failure;
+
+const DROPPED: Failure = { ok: false, text: 'Blockfisher stopped responding. Reload the page and try again.', dropped: true };
 
 export function send(request: Extract<Request, { type: 'identify' }>): Promise<IdentifyReply>;
 export function send(request: Extract<Request, { type: 'scan' }>): Promise<ScanReply>;
 export function send(request: Request): Promise<IdentifyReply | ScanReply> {
   return chrome.runtime.sendMessage(request).then(
-    (reply) => reply ?? { ok: false, text: 'Blockfisher stopped responding. Reload the page and try again.' },
-    () => ({ ok: false, text: 'Blockfisher stopped responding. Reload the page and try again.' }),
+    (reply) => reply ?? DROPPED,
+    () => DROPPED,
   );
 }
 
@@ -50,12 +54,17 @@ export function askState(found: readonly Found[], identified: readonly Identifie
   return { kind: 'ask', tokens: tokens.slice(0, 5), notes, offerRemember };
 }
 
+export const checkingLabel = (tokens: readonly IdentifiedToken[]) =>
+  `Checking ${tokens.map(tokenLabel).join(', ')}. The first scan in a while can take up to a minute.`;
+
 /** Scans the chosen tokens one after another and returns the results card. */
 export async function scanAll(tokens: readonly IdentifiedToken[]): Promise<CardState> {
   const results: Extract<CardState, { kind: 'results' }>['results'] = [];
   for (const token of tokens) {
     if (!token.address) continue;
-    const reply = await send({ type: 'scan', address: token.address, network: token.network });
+    let reply = await send({ type: 'scan', address: token.address, network: token.network });
+    // The scanner keeps finished scans for ten minutes, so asking again picks up the result.
+    if (!reply.ok && reply.dropped) reply = await send({ type: 'scan', address: token.address, network: token.network });
     results.push(reply.ok ? { token, report: reply.report } : { token, error: reply.text });
   }
   return { kind: 'results', results };

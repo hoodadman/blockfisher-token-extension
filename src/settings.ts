@@ -28,6 +28,19 @@ export interface Settings {
 
 export const hostKey = (hostname: string) => hostname.toLowerCase().replace(/^www\./, '');
 
+/** The site in what the user typed: "example.com", "www.example.com/page" or a full https address. */
+export function hostFromInput(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(/^[a-z]+:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    if (url.protocol !== 'https:' || !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(url.hostname)) return null;
+    return hostKey(url.hostname);
+  } catch {
+    return null;
+  }
+}
+
 export function readModes(value: unknown): Record<string, SiteMode> {
   if (!value || typeof value !== 'object') return {};
   // Earlier versions saved "ask" and "auto"; both now mean on.
