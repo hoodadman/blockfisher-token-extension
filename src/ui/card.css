@@ -169,20 +169,83 @@
   margin-bottom: 8px;
 }
 
-.bf__overall {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
+.bf__overall-label {
+  margin: 0 0 10px;
+  text-align: center;
+  font-weight: 700;
 }
 
-.bf__overall-value {
-  font-size: 34px;
+.bf-chart {
+  --bf-tone: var(--bf-muted);
+  position: relative;
+  width: min(100%, 260px);
+  margin: 0 auto 6px;
+  aspect-ratio: 360 / 254;
+}
+
+.bf-chart--green { --bf-tone: var(--bf-green); }
+.bf-chart--yellow { --bf-tone: var(--bf-yellow); }
+.bf-chart--orange { --bf-tone: var(--bf-orange); }
+.bf-chart--red { --bf-tone: var(--bf-red); }
+
+.bf-chart__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.bf-chart__track {
+  fill: var(--bf-panel);
+  stroke: var(--bf-muted);
+  stroke-opacity: 0.45;
+  stroke-width: 1.5;
+}
+
+.bf-chart__petal--green .bf-chart__fill { fill: var(--bf-green); }
+.bf-chart__petal--yellow .bf-chart__fill { fill: var(--bf-yellow); }
+.bf-chart__petal--orange .bf-chart__fill { fill: var(--bf-orange); }
+.bf-chart__petal--red .bf-chart__fill { fill: var(--bf-red); }
+.bf-chart__petal--none .bf-chart__fill { fill: var(--bf-muted); }
+
+.bf-chart__label {
+  fill: var(--bf-text);
+  font: 700 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.bf-chart__ring {
+  fill: none;
+  stroke: var(--bf-tone);
+  stroke-width: 5;
+}
+
+.bf-chart__core {
+  fill: var(--bf-bg);
+  stroke: var(--bf-line);
+}
+
+.bf-chart__centre {
+  position: absolute;
+  left: 50%;
+  top: calc((168 - 4) / 254 * 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.bf-chart__centre .bf__overall-value {
+  color: var(--bf-tone);
+  font-size: 30px;
   font-weight: 800;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-.bf__overall-label {
+.bf-chart__max {
+  margin-top: 2px;
+  color: var(--bf-muted);
+  font-size: 10px;
   font-weight: 600;
 }
 
