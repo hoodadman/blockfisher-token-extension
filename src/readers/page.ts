@@ -1,5 +1,5 @@
-import { isCommonToken, isTokenAddress } from './address';
-import { readUrl, siteOf } from './url';
+import { NETWORK_BY_DEXSCREENER, isCommonToken, isSolanaAddress, isTokenAddress } from './address';
+import { dexScreenerPath, readUrl, siteOf } from './url';
 import { candidateKey, type Candidate, type Found, type Network } from './types';
 
 /** Explorer token pages. A link to one of these is a strong hint. */
@@ -115,12 +115,34 @@ export function rank(found: readonly Found[]): Found[] {
   return [...found].sort((a, b) => Number(Boolean(a.common)) - Number(Boolean(b.common)) || b.score - a.score).slice(0, MAX_RESULTS);
 }
 
+const BASE58_RUN = /[1-9A-HJ-NP-Za-km-z]{32,44}/g;
+
+/**
+ * DexScreener puts Solana pair addresses in its page address in lower case, which isn't a
+ * valid address. The page itself (links, scripts) carries the real spelling, so find the
+ * one string that matches it ignoring case.
+ */
+function fromDexScreenerPage(doc: Document, href: string): Found[] {
+  const path = dexScreenerPath(href);
+  if (!path) return [];
+  const wanted = path.value.toLowerCase();
+  if (!/^[1-9a-z]{32,44}$/.test(wanted)) return [];
+  for (const match of (doc.documentElement?.innerHTML ?? '').matchAll(BASE58_RUN)) {
+    const value = match[0];
+    if (value.toLowerCase() === wanted && isSolanaAddress(value)) {
+      return [{ candidate: { address: value, network: NETWORK_BY_DEXSCREENER[path.chainId], chainId: path.chainId }, source: 'url', score: 10 }];
+    }
+  }
+  return [];
+}
+
 /**
  * What to offer on this page. On the named sites the page address says which token is
  * open; their trending bars and lists are full of other tokens, so we don't read the page.
  */
 export function findTokens(doc: Document, href: string): Found[] {
   const fromUrl = readUrl(href);
-  if (fromUrl.length > 0 || siteOf(new URL(href).hostname)) return fromUrl;
+  if (fromUrl.length > 0) return fromUrl;
+  if (siteOf(new URL(href).hostname)) return fromDexScreenerPage(doc, href);
   return readPage(doc, href);
 }

@@ -46,3 +46,16 @@ describe('marketData', () => {
     expect(await marketData(PEPE, 'eth')).toEqual({ pairs: undefined, coingecko: { tickers: [{ market: { name: 'Binance', identifier: 'binance' } }] } });
   });
 });
+
+describe('identify with a Uniswap v4 pool id', () => {
+  it('looks it up as a pair only', async () => {
+    const pool = `0x${'ab'.repeat(32)}`;
+    const fetchMock = vi.fn(async (url: string) =>
+      json({ pairs: url.includes('/pairs/base/') ? [{ chainId: 'base', baseToken: { address: PEPE, symbol: 'PEPE' } }] : [] }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const [token] = await identify([{ address: pool, network: 'base' }]);
+    expect(token).toMatchObject({ input: pool, address: PEPE, network: 'base' });
+    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes('/tokens/'))).toBe(false);
+  });
+});
