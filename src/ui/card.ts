@@ -1,5 +1,6 @@
 import type { ScanReport } from '../api';
 import type { IdentifiedToken } from '../readers/types';
+import { scoreChart } from './chart';
 
 /**
  * The "Run scan?" card and the results. Plain DOM, so it can live in a shadow root on any
@@ -126,12 +127,14 @@ function reportView(token: IdentifiedToken, report: ScanReport): HTMLElement {
   title.append(el('strong', undefined, report.symbol || report.name || tokenLabel(token)), el('span', 'bf__muted', ` on ${report.chain.name}`));
   card.append(title);
 
-  const overall = el('div', `bf__overall bf__score--${toneFor(report.overall)}`);
-  overall.append(
-    el('span', 'bf__overall-value', report.overall === null ? '–' : String(report.overall)),
-    el('span', 'bf__overall-label', riskWords(report.overall)),
+  card.append(
+    scoreChart(report.overall, [
+      { id: 'security', label: 'Security', score: report.security.score },
+      { id: 'community', label: 'Community', score: report.community?.score },
+      { id: 'foundation', label: 'Foundation', score: report.foundation.score },
+    ]),
+    el('p', `bf__overall-label bf__score--${toneFor(report.overall)}`, riskWords(report.overall)),
   );
-  card.append(overall);
 
   const row = el('div', 'bf__scores');
   row.append(scoreBox('Security', report.security.score), scoreBox('Community', report.community?.score), scoreBox('Foundation', report.foundation.score));
