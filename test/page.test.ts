@@ -48,3 +48,18 @@ describe('readPage', () => {
     expect(addresses('<p>abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMN</p>')).toEqual([]);
   });
 });
+
+describe('findTokens', () => {
+  it('ignores trending bars on named sites and keeps the token in the address', async () => {
+    const { findTokens } = await import('../src/readers/page');
+    const doc = page(`<div class="trending"><a href="/solana/${BONK}">BONK</a><a href="/ethereum/${WETH}">WETH</a></div>`);
+    const found = findTokens(doc, `https://dexscreener.com/ethereum/${PEPE}`);
+    expect(found.map((item) => item.candidate)).toEqual([{ address: PEPE, network: 'eth', chainId: 'ethereum' }]);
+  });
+
+  it('shows nothing on a named site page with no token in the address', async () => {
+    const { findTokens } = await import('../src/readers/page');
+    const doc = page(`<a href="/solana/${BONK}">BONK</a>`);
+    expect(findTokens(doc, 'https://dexscreener.com/')).toEqual([]);
+  });
+});
