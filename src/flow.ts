@@ -5,7 +5,7 @@ import { tokenLabel, toneFor, type CardState } from './ui/card';
 /** Messages between the page (content script, popup) and the background worker. */
 export type Request =
   | { type: 'identify'; candidates: Candidate[] }
-  | { type: 'scan'; address: string; network?: Network }
+  | { type: 'scan'; address: string; network?: Network; refresh?: boolean }
   | { type: 'badge'; text: string; color: string };
 
 /** dropped: the background worker went away before answering. */
@@ -82,6 +82,17 @@ export async function scanAll(
     more: more.filter((token) => !scanned.has(token.address)),
     shown: before?.results.length ?? 0,
   };
+}
+
+/** "Re-check": scans one result again without shared answers and puts it in place. */
+export async function recheck(before: Extract<CardState, { kind: 'results' }>, index: number): Promise<Extract<CardState, { kind: 'results' }>> {
+  const old = before.results[index];
+  const results = before.results.slice();
+  if (old?.token.address) {
+    const reply = await send({ type: 'scan', address: old.token.address, network: old.token.network, refresh: true });
+    results[index] = reply.ok ? { token: old.token, report: reply.report } : { ...old, error: reply.text };
+  }
+  return { ...before, results, shown: before.results.length, rechecked: index };
 }
 
 /** The tokens on an "ask" card that weren't chosen, to offer after the scan. */

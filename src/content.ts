@@ -1,4 +1,4 @@
-import { askState, checkingLabel, autoStep, badgeFor, notChosen, scanAll, send } from './flow';
+import { askState, checkingLabel, autoStep, badgeFor, notChosen, recheck, scanAll, send } from './flow';
 import { findTokens } from './readers/page';
 import { candidateKey } from './readers/types';
 import { loadSettings, hostKey } from './settings';
@@ -70,6 +70,9 @@ function show(state: CardState, key: string) {
     },
     onScanMore(token) {
       if (state.kind === 'results') void scanMore(state, token, key);
+    },
+    onRecheck(index) {
+      if (state.kind === 'results') void recheck(state, index).then((next) => { if (lastKey === key) show(next, key); });
     },
   });
 }
@@ -148,14 +151,14 @@ function tick() {
 }
 
 /** Looks at the page afresh, for when the switches change. */
-function recheck() {
+function lookAgain() {
   lastKey = '';
   lastHref = '';
   tick();
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && (changes.switches || changes.modes)) recheck();
+  if (area === 'sync' && (changes.switches || changes.modes)) lookAgain();
 });
 
 // The toolbar popup asks for the card when it isn't on the page.

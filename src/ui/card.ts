@@ -18,6 +18,8 @@ export type CardState =
       more?: IdentifiedToken[];
       /** How many results were already shown (and animated) before; only newer ones animate. */
       shown?: number;
+      /** The result just re-checked, which fills its triangle again. */
+      rechecked?: number;
     }
   | { kind: 'message'; text: string; offerRemember?: boolean };
 
@@ -26,6 +28,8 @@ export interface CardHandlers {
   onDismiss(): void;
   /** Scan one more of the page's tokens and add it to the results. */
   onScanMore?(token: IdentifiedToken): void;
+  /** Scan one result again without answers shared from other users' scans. */
+  onRecheck?(index: number): void;
   /** Turn on auto scan for this site. Only offered in the toolbar popup on unknown sites. */
   onRemember?(): void;
 }
@@ -125,6 +129,27 @@ function askView(state: Extract<CardState, { kind: 'ask' }>, handlers: CardHandl
   return body;
 }
 
+/** "40 minutes ago", "6 hours ago". */
+export function ago(at: number, now = Date.now()): string {
+  const minutes = Math.max(1, Math.round((now - at) / 60_000));
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `${hours} hour${hours === 1 ? '' : 's'} ago` : 'a day ago';
+}
+
+/** Answers shared from someone else's scan are fresh enough under this; don't mention them. */
+const FRESH_MS = 2 * 60_000;
+
+/** "Community checked 6 hours ago." for parts shared from earlier scans, or null when all are fresh. */
+export function checkedText(report: ScanReport, now = Date.now()): string | null {
+  const parts = [
+    { label: 'Community', at: report.checked?.community },
+    { label: 'Holder data', at: report.checked?.holders },
+  ].filter((part): part is { label: string; at: number } => part.at !== undefined && now - part.at >= FRESH_MS);
+  if (parts.length === 0) return null;
+  return `${parts.map((part) => `${part.label} checked ${ago(part.at, now)}`).join('. ')}. Security checked just now.`;
+}
+
 const shortAddress = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
 function scoreBox(label: string, score: number | null | undefined): HTMLElement {
@@ -133,7 +158,7 @@ function scoreBox(label: string, score: number | null | undefined): HTMLElement 
   return box;
 }
 
-function reportView(token: IdentifiedToken, report: ScanReport): HTMLElement {
+function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () => void, error?: string): HTMLElement {
   const card = el('section', 'bf__report');
   const title = el('div', 'bf__report-title');
   title.append(el('strong', undefined, report.symbol || report.name || tokenLabel(token)), el('span', 'bf__muted', ` on ${report.chain.name}`));
@@ -174,6 +199,22 @@ function reportView(token: IdentifiedToken, report: ScanReport): HTMLElement {
   if (report.failures.length > 0 || report.security.notChecked.length > 0) {
     card.append(el('p', 'bf__note', 'Some checks couldn’t run, so treat this score as unfinished rather than clear.'));
   }
+  const checked = checkedText(report);
+  if (checked) {
+    const line = el('p', 'bf__small bf__checked', `${checked} `);
+    if (onRecheck) {
+      const again = el('button', 'bf__link', 'Re-check');
+      again.type = 'button';
+      again.addEventListener('click', () => {
+        again.disabled = true;
+        again.textContent = 'Checking…';
+        onRecheck();
+      });
+      line.append(again);
+    }
+    card.append(line);
+  }
+  if (error) card.append(el('p', 'bf__note', `The re-check didn’t finish: ${error}`));
   card.append(el('p', 'bf__small', 'Not financial advice. A low-risk score doesn’t mean a token will go up.'));
   return card;
 }
@@ -208,9 +249,9 @@ export function renderCard(root: HTMLElement, state: CardState, handlers: CardHa
     const fresh: HTMLElement[] = [];
     state.results.forEach((result, index) => {
       const view = result.report
-        ? reportView(result.token, result.report)
+        ? reportView(result.token, result.report, handlers.onRecheck && (() => handlers.onRecheck?.(index)), result.error)
         : el('p', 'bf__note', `${tokenLabel(result.token)}: ${result.error ?? 'The scan didn’t finish.'}`);
-      if (index >= shown) fresh.push(view);
+      if (index >= shown || index === state.rechecked) fresh.push(view);
       body.append(view);
     });
     for (const token of state.more ?? []) {
@@ -234,9 +275,9 @@ export function renderCard(root: HTMLElement, state: CardState, handlers: CardHa
         charts.forEach((chart) => fillUp(chart, DIVE_CLEAR_MS));
       }
     } else {
-      // A token added with "as well?": no second dive, just fill its triangle and show it.
+      // A token added with "as well?", or re-checked: no second dive, just fill its triangle and show it.
       charts.forEach((chart) => fillUp(chart, 0));
-      requestAnimationFrame(() => fresh[0]?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }));
+      if (state.rechecked === undefined) requestAnimationFrame(() => fresh[0]?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }));
     }
   }
   root.append(card);

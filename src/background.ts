@@ -53,7 +53,7 @@ chrome.runtime.onMessage.addListener((message: Request, sender, sendResponse) =>
     return true;
   }
   if (message?.type === 'scan') {
-    keepAlive(scan(message.address, message.network)).then(
+    keepAlive(scan(message.address, message.network, message.refresh === true)).then(
       (report): void => sendResponse({ ok: true, report } satisfies ScanReply),
       (error): void => sendResponse(failure(error) satisfies ScanReply),
     );

@@ -1,4 +1,4 @@
-import { askState, checkingLabel, notChosen, scanAll, send } from './flow';
+import { askState, checkingLabel, notChosen, recheck, scanAll, send } from './flow';
 import type { Found } from './readers/types';
 import { siteOf } from './readers/url';
 import { hostKey, loadSettings } from './settings';
@@ -39,6 +39,9 @@ function show(state: CardState, host?: string) {
     },
     onScanMore(token) {
       if (state.kind === 'results') void scanAll([token], state.more ?? [], state).then((next) => show(next, host));
+    },
+    onRecheck(index) {
+      if (state.kind === 'results') void recheck(state, index).then((next) => show(next, host));
     },
   });
 }
