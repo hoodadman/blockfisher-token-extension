@@ -1,6 +1,7 @@
 import type { ScanReport } from '../api';
 import type { IdentifiedToken } from '../readers/types';
 import { scoreChart } from './chart';
+import { diveLayer } from './dive';
 
 /**
  * The "Run scan?" card and the results. Plain DOM, so it can live in a shadow root on any
@@ -191,6 +192,10 @@ export function renderCard(root: HTMLElement, state: CardState, handlers: CardHa
       else body.append(el('p', 'bf__note', `${tokenLabel(result.token)}: ${result.error ?? 'The scan didn’t finish.'}`));
     }
     card.append(body);
+    if (state.results.some((result) => result.report)) {
+      card.classList.add('bf--dive');
+      card.append(diveLayer());
+    }
   }
   root.append(card);
 }
