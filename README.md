@@ -8,7 +8,7 @@ Three switches, in the icon's popup under **Settings** and on the settings page,
 | --- | --- | --- |
 | Auto scan | Looks for tokens on supported sites by itself. | Only works when you click the icon. |
 | Auto pop up | Shows the card on the page. | Stays out of the way. The icon's badge shows the number of tokens found, or the score once scanned. Click the icon to see the card. |
-| Confirm token before scan | Asks "Run a safety scan?" first. | Scans the main token straight away. |
+| Confirm token before scan | Asks "Run a safety scan?" first. | Scans the main token straight away. On a swap page it scans the likelier one (not a stablecoin or wrapped SOL/ETH) and offers "Scan X as well?" under the results. |
 
 Each site can also be turned on or off on the settings page, and new sites can be added there by address before visiting them.
 

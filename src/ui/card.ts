@@ -11,12 +11,21 @@ import { DIVE_CLEAR_MS, diveLayer } from './dive';
 export type CardState =
   | { kind: 'ask'; tokens: IdentifiedToken[]; notes: string[]; offerRemember: boolean }
   | { kind: 'loading'; label: string }
-  | { kind: 'results'; results: Array<{ token: IdentifiedToken; report?: ScanReport; error?: string }> }
+  | {
+      kind: 'results';
+      results: Array<{ token: IdentifiedToken; report?: ScanReport; error?: string }>;
+      /** Other tokens on the page, not scanned yet: offered as "Scan X as well?". */
+      more?: IdentifiedToken[];
+      /** How many results were already shown (and animated) before; only newer ones animate. */
+      shown?: number;
+    }
   | { kind: 'message'; text: string; offerRemember?: boolean };
 
 export interface CardHandlers {
   onScan(tokens: IdentifiedToken[], remember: boolean): void;
   onDismiss(): void;
+  /** Scan one more of the page's tokens and add it to the results. */
+  onScanMore?(token: IdentifiedToken): void;
   /** Turn on auto scan for this site. Only offered in the toolbar popup on unknown sites. */
   onRemember?(): void;
 }
@@ -195,16 +204,39 @@ export function renderCard(root: HTMLElement, state: CardState, handlers: CardHa
   }
   if (state.kind === 'results') {
     const body = el('div', 'bf__body');
-    for (const result of state.results) {
-      if (result.report) body.append(reportView(result.token, result.report));
-      else body.append(el('p', 'bf__note', `${tokenLabel(result.token)}: ${result.error ?? 'The scan didn’t finish.'}`));
+    const shown = state.shown ?? 0;
+    const fresh: HTMLElement[] = [];
+    state.results.forEach((result, index) => {
+      const view = result.report
+        ? reportView(result.token, result.report)
+        : el('p', 'bf__note', `${tokenLabel(result.token)}: ${result.error ?? 'The scan didn’t finish.'}`);
+      if (index >= shown) fresh.push(view);
+      body.append(view);
+    });
+    for (const token of state.more ?? []) {
+      if (!handlers.onScanMore) break;
+      const more = el('button', 'bf__secondary bf__more', `Scan ${token.symbol || token.name || 'the other token'} as well?`);
+      more.type = 'button';
+      more.addEventListener('click', () => {
+        more.disabled = true;
+        more.textContent = `Checking ${tokenLabel(token)}…`;
+        handlers.onScanMore?.(token);
+      });
+      body.append(more);
     }
     card.append(body);
-    if (state.results.some((result) => result.report)) {
-      card.classList.add('bf--dive');
-      card.append(diveLayer());
-      // Once the water clears, fill the triangles up to their scores.
-      card.querySelectorAll<HTMLElement>('.bf-chart').forEach((chart) => fillUp(chart, DIVE_CLEAR_MS));
+    const charts = fresh.flatMap((view) => Array.from(view.querySelectorAll<HTMLElement>('.bf-chart')));
+    if (shown === 0) {
+      if (charts.length > 0) {
+        card.classList.add('bf--dive');
+        card.append(diveLayer());
+        // Once the water clears, fill the triangles up to their scores.
+        charts.forEach((chart) => fillUp(chart, DIVE_CLEAR_MS));
+      }
+    } else {
+      // A token added with "as well?": no second dive, just fill its triangle and show it.
+      charts.forEach((chart) => fillUp(chart, 0));
+      requestAnimationFrame(() => fresh[0]?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }));
     }
   }
   root.append(card);

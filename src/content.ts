@@ -1,4 +1,4 @@
-import { askState, checkingLabel, autoStep, badgeFor, scanAll, send } from './flow';
+import { askState, checkingLabel, autoStep, badgeFor, notChosen, scanAll, send } from './flow';
 import { findTokens } from './readers/page';
 import { candidateKey } from './readers/types';
 import { loadSettings, hostKey } from './settings';
@@ -66,14 +66,25 @@ function show(state: CardState, key: string) {
       hide();
     },
     onScan(tokens) {
-      void runScans(tokens, key);
+      void runScans(tokens, key, state.kind === 'ask' ? notChosen(state.tokens, tokens) : []);
+    },
+    onScanMore(token) {
+      if (state.kind === 'results') void scanMore(state, token, key);
     },
   });
 }
 
-async function runScans(tokens: Parameters<typeof scanAll>[0], key: string) {
+type Tokens = Parameters<typeof scanAll>[0];
+
+async function runScans(tokens: Tokens, key: string, more: Tokens = []) {
   show({ kind: 'loading', label: checkingLabel(tokens) }, key);
-  const results = await scanAll(tokens);
+  const results = await scanAll(tokens, more);
+  if (lastKey === key) show(results, key);
+}
+
+/** "Scan X as well?": add that token's results under the ones already shown. */
+async function scanMore(before: Extract<CardState, { kind: 'results' }>, token: Tokens[number], key: string) {
+  const results = await scanAll([token], before.more ?? [], before);
   if (lastKey === key) show(results, key);
 }
 
@@ -109,7 +120,8 @@ async function check() {
     return;
   }
   if (state.kind === 'ask' && autoStep(state, switches) === 'scan') {
-    await runScans(state.tokens.slice(0, 1), key);
+    // Scan the likeliest token; the card offers the others with "Scan X as well?".
+    await runScans(state.tokens.slice(0, 1), key, state.tokens.slice(1));
     return;
   }
   show(state, key);

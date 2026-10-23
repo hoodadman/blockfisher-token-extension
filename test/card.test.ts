@@ -53,3 +53,15 @@ describe('renderCard', () => {
     expect(root.querySelector('.bf__score--none')?.textContent).toContain('Community');
   });
 });
+
+describe('"as well?" button', () => {
+  it('offers the page’s other tokens after a scan and asks for one when clicked', () => {
+    const sol = { input: 'So11111111111111111111111111111111111111112', status: 'token' as const, address: 'So11111111111111111111111111111111111111112', symbol: 'SOL', chainName: 'Solana', network: 'sol' as const };
+    const onScanMore = vi.fn();
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: pepe, error: 'x' }], more: [sol] }, { onScan: vi.fn(), onDismiss: vi.fn(), onScanMore });
+    click(root, 'Scan SOL as well?');
+    expect(onScanMore).toHaveBeenCalledWith(sol);
+    expect(root.textContent).toContain('Checking SOL on Solana');
+  });
+});

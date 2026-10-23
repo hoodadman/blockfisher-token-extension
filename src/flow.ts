@@ -58,8 +58,15 @@ export function askState(found: readonly Found[], identified: readonly Identifie
 export const checkingLabel = (tokens: readonly IdentifiedToken[]) =>
   `Checking ${tokens.map(tokenLabel).join(', ')}. The first scan in a while can take up to a minute.`;
 
-/** Scans the chosen tokens one after another and returns the results card. */
-export async function scanAll(tokens: readonly IdentifiedToken[]): Promise<CardState> {
+/**
+ * Scans the chosen tokens one after another and returns the results card. `more` are the
+ * page's other tokens, offered afterwards; `before` is a card to add the new results to.
+ */
+export async function scanAll(
+  tokens: readonly IdentifiedToken[],
+  more: readonly IdentifiedToken[] = [],
+  before?: Extract<CardState, { kind: 'results' }>,
+): Promise<Extract<CardState, { kind: 'results' }>> {
   const results: Extract<CardState, { kind: 'results' }>['results'] = [];
   for (const token of tokens) {
     if (!token.address) continue;
@@ -68,8 +75,18 @@ export async function scanAll(tokens: readonly IdentifiedToken[]): Promise<CardS
     if (!reply.ok && reply.dropped) reply = await send({ type: 'scan', address: token.address, network: token.network });
     results.push(reply.ok ? { token, report: reply.report } : { token, error: reply.text });
   }
-  return { kind: 'results', results };
+  const scanned = new Set(tokens.map((token) => token.address));
+  return {
+    kind: 'results',
+    results: [...(before?.results ?? []), ...results],
+    more: more.filter((token) => !scanned.has(token.address)),
+    shown: before?.results.length ?? 0,
+  };
 }
+
+/** The tokens on an "ask" card that weren't chosen, to offer after the scan. */
+export const notChosen = (all: readonly IdentifiedToken[], chosen: readonly IdentifiedToken[]) =>
+  all.filter((token) => !chosen.includes(token));
 
 /** What the page card does next, given what was found and the user's switches. */
 export function autoStep(state: CardState, switches: { autoPopup: boolean; confirmToken: boolean }): 'scan' | 'show' | 'badge' {
