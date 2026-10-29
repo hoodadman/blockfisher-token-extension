@@ -12,6 +12,8 @@ Three switches, in the icon's popup under **Settings** and on the settings page,
 
 Each site can also be turned on or off on the settings page, and new sites can be added there by address before visiting them.
 
+**Your plan.** Scans run on the free plan. Someone who pays for Pro or Ultra on the token scanner's website clicks "Copy key for the extension" there and pastes the key into **Your plan** on the settings page. The key is kept in this computer's Chrome storage (`chrome.storage.local`, not synced) and sent as `Authorization: Bearer bf_…` with each scan (`src/account.ts`).
+
 The scan itself runs on the Blockfisher token scanner (`blockfisher-token-scanner-v2`, endpoints described in its `docs/extension-api.md`). The extension holds no API keys.
 
 ## Build and load it
