@@ -1,3 +1,4 @@
+import { loadAccountKey } from './account';
 import { MarketError, identify as identifyOnMarket, marketData } from './market';
 import type { Candidate, IdentifiedToken, Network } from './readers/types';
 
@@ -32,12 +33,18 @@ export interface ScanReport {
 
 export class ApiError extends Error {}
 
+/** The account key, when the user added one, so scans run on their paid plan. */
+async function authHeaders(): Promise<Record<string, string>> {
+  const key = await loadAccountKey().catch(() => undefined);
+  return key ? { authorization: `Bearer ${key}` } : {};
+}
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      headers: { 'content-type': 'application/json', accept: 'application/json', ...(await authHeaders()) },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
@@ -72,4 +79,20 @@ export async function scan(address: string, network?: Network, refresh = false):
   // refresh: a re-check, which skips answers shared from other users' scans.
   const reply = await post<{ report: ScanReport }>('/api/scan', { address, network, ...market, ...(refresh ? { refresh } : {}) });
   return reply.report;
+}
+
+export interface AccountView {
+  email: string;
+  paying: boolean;
+  plan: 'free' | 'pro' | 'ultra';
+}
+
+/** The account a key belongs to, or undefined when the scanner doesn't know it. */
+export async function account(key: string): Promise<AccountView | undefined> {
+  const response = await fetch(`${API_BASE}/api/account`, {
+    headers: { accept: 'application/json', authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  const reply = (await response.json().catch(() => ({}))) as { account?: AccountView };
+  return response.ok ? reply.account : undefined;
 }

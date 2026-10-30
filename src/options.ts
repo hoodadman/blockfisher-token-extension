@@ -1,3 +1,5 @@
+import { isAccountKey, loadAccountKey, saveAccountKey } from './account';
+import { account } from './api';
 import { NAMED_SITES, siteOf } from './readers/url';
 import { hostFromInput, loadSettings, setMode, type Settings, type SiteMode } from './settings';
 import { forgetSite, isAllowedHere, rememberSite, requestSite, syncScripts } from './sites';
@@ -100,6 +102,40 @@ function addSite(event: SubmitEvent) {
   });
 }
 
+const PLAN_NAMES = { free: 'Free', pro: 'Pro', ultra: 'Ultra' } as const;
+
+/** Shows whether a key is saved and which plan it runs scans on. */
+async function showAccount(note = '') {
+  const key = await loadAccountKey();
+  const remove = document.getElementById('account-remove') as HTMLButtonElement;
+  const status = document.getElementById('account-note') as HTMLElement;
+  remove.hidden = !key;
+  if (!key) {
+    status.textContent = note || 'No key saved. Scans run on the free plan.';
+    return;
+  }
+  status.textContent = 'Checking your key…';
+  const found = await account(key).catch(() => undefined);
+  status.textContent = found
+    ? `${note}Signed in as ${found.email}. ${found.paying ? `Scans run on ${PLAN_NAMES[found.plan]}.` : 'Your plan has ended, so scans run on Free.'}`
+    : `${note}Blockfisher didn’t recognise this key, or couldn’t be reached. Scans run on Free until it does.`;
+}
+
+function saveAccount(event: SubmitEvent) {
+  event.preventDefault();
+  const input = document.getElementById('account-key') as HTMLInputElement;
+  const value = input.value.trim();
+  if (!isAccountKey(value)) {
+    (document.getElementById('account-note') as HTMLElement).textContent = 'That isn’t an account key. It starts with bf_.';
+    return;
+  }
+  input.value = '';
+  void saveAccountKey(value).then(() => showAccount('Saved. '));
+}
+
+document.getElementById('account')?.addEventListener('submit', saveAccount);
+document.getElementById('account-remove')?.addEventListener('click', () => void saveAccountKey(undefined).then(() => showAccount('Removed. ')));
+void showAccount();
 document.getElementById('add-site')?.addEventListener('submit', addSite);
 void render();
 void renderSwitches(document.getElementById('switches') as HTMLElement);

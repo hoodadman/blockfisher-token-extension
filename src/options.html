@@ -30,8 +30,20 @@
         <p id="add-site-note" class="muted" aria-live="polite"></p>
       </form>
 
+      <h2>Your plan</h2>
+      <p class="muted">Scans run on the free plan. If you pay for Pro or Ultra on the Blockfisher token scanner, click "Copy key for the extension" there and paste it here.</p>
+      <form id="account" class="add-site">
+        <label for="account-key">Account key</label>
+        <div class="add-site__row">
+          <input id="account-key" type="password" autocomplete="off" spellcheck="false" placeholder="bf_…" />
+          <button type="submit">Save</button>
+          <button id="account-remove" type="button" hidden>Remove</button>
+        </div>
+        <p id="account-note" class="muted" aria-live="polite"></p>
+      </form>
+
       <h2>Privacy</h2>
-      <p>Blockfisher reads token addresses on the page inside your browser. Only the token address and its chain are sent: to DexScreener and CoinGecko to look up its market data, and to Blockfisher to check it. We never send the page address, your browsing history or your wallet.</p>
+      <p>Blockfisher reads token addresses on the page inside your browser. Only the token address and its chain are sent: to DexScreener and CoinGecko to look up its market data, and to Blockfisher to check it. If you add an account key, it is sent to Blockfisher with each scan so the scan runs on your plan, and it stays on this computer. We never send the page address, your browsing history or your wallet.</p>
     </main>
     <script type="module" src="options.js"></script>
   </body>
