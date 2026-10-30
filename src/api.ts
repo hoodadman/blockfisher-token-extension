@@ -20,7 +20,8 @@ export interface ScanReport {
   security: {
     score: number | null;
     band: 'low' | 'medium' | 'high' | null;
-    issues: Array<{ id: string; severity: 'critical' | 'warning' | 'minor'; title: string; summary: string }>;
+    /** experimental: a holder check that is still being tuned, labelled so it isn't read as a measured fact. */
+    issues: Array<{ id: string; severity: 'critical' | 'warning' | 'minor'; title: string; summary: string; experimental?: boolean }>;
     notChecked: Array<{ id: string; label: string }>;
   };
   community?: { score: number | null };
@@ -29,6 +30,8 @@ export interface ScanReport {
   failures: Array<{ source: string }>;
   /** When shared parts were fetched (ms). The scanner shares X and holder data between users for a while. */
   checked?: { community?: number; holders?: number };
+  /** The plan the scan ran on. Free can't re-check. */
+  plan?: 'free' | 'pro' | 'ultra';
 }
 
 export class ApiError extends Error {}

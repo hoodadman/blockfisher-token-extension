@@ -100,4 +100,42 @@ describe('shared answers', () => {
     expect(onRecheck).toHaveBeenCalledWith(0);
     expect(root.textContent).toContain('Checking…');
   });
+
+  it('does not offer a re-check on Free, which the scanner refuses', () => {
+    const onRecheck = vi.fn();
+    const root = document.createElement('div');
+    const old = { ...report, plan: 'free' as const, checked: { community: Date.now() - 3 * 3_600_000 } };
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report: old }] }, { onScan: vi.fn(), onDismiss: vi.fn(), onRecheck });
+    expect(root.textContent).toContain('Community checked 3 hours ago');
+    expect([...root.querySelectorAll('button')].some((button) => button.textContent === 'Re-check')).toBe(false);
+    expect(root.textContent).toContain('Re-check is part of Pro.');
+  });
+});
+
+describe('issues', () => {
+  it('labels experimental holder checks', () => {
+    const report: ScanReport = {
+      address: bonk.address!,
+      chain: { name: 'Solana', network: 'sol' },
+      symbol: 'BONK',
+      overall: 70,
+      security: {
+        score: 70,
+        band: 'medium',
+        issues: [
+          { id: 'bundlers', severity: 'warning', title: 'Coordinated buying', summary: 'A few wallets bought together.', experimental: true },
+          { id: 'tokenAge', severity: 'minor', title: 'New token', summary: 'It started trading 3 days ago.', experimental: false },
+        ],
+        notChecked: [],
+      },
+      community: { score: 70 },
+      foundation: { score: 70 },
+      brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+      failures: [],
+    };
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: bonk, report }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+    const titles = [...root.querySelectorAll('.bf__issue strong')].map((node) => node.textContent);
+    expect(titles).toEqual(['Coordinated buying (experimental)', 'New token']);
+  });
 });

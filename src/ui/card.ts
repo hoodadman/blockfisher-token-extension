@@ -182,7 +182,7 @@ function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () =
     const list = el('ul', 'bf__issues');
     for (const issue of top) {
       const item = el('li', `bf__issue bf__issue--${issue.severity}`);
-      item.append(el('strong', undefined, issue.title), el('span', undefined, ` ${issue.summary}`));
+      item.append(el('strong', undefined, issue.experimental ? `${issue.title} (experimental)` : issue.title), el('span', undefined, ` ${issue.summary}`));
       list.append(item);
     }
     card.append(list);
@@ -202,7 +202,10 @@ function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () =
   const checked = checkedText(report);
   if (checked) {
     const line = el('p', 'bf__small bf__checked', `${checked} `);
-    if (onRecheck) {
+    // The scanner refuses a Free re-check, so don't offer a button that can only fail.
+    if (report.plan === 'free') {
+      line.append('Re-check is part of Pro.');
+    } else if (onRecheck) {
       const again = el('button', 'bf__link', 'Re-check');
       again.type = 'button';
       again.addEventListener('click', () => {
