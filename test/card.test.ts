@@ -135,7 +135,79 @@ describe('issues', () => {
     };
     const root = document.createElement('div');
     renderCard(root, { kind: 'results', results: [{ token: bonk, report }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
-    const titles = [...root.querySelectorAll('.bf__issue strong')].map((node) => node.textContent);
+    const titles = [...root.querySelectorAll('.bf__report > .bf__issues .bf__issue strong')].map((node) => node.textContent);
     expect(titles).toEqual(['Coordinated buying (experimental)', 'New token']);
+  });
+});
+
+describe('view full scan', () => {
+  const issue = (n: number) => ({ id: `i${n}`, severity: 'minor' as const, title: `Issue ${n}`, summary: `Summary ${n}.`, details: `Details ${n}.` });
+  const report: ScanReport = {
+    address: pepe.address!,
+    chain: { name: 'Ethereum', network: 'eth' },
+    symbol: 'PEPE',
+    overall: 75,
+    security: { score: 75, band: 'medium', issues: [1, 2, 3, 4].map(issue), notChecked: [], coverage: { checked: 18, total: 20 } },
+    securityGroups: [
+      { id: 'mint', label: 'Minting', status: 'pass', summary: 'No one can make more tokens.' },
+      { id: 'holders', label: 'Holders', status: 'unknown', summary: 'Holder data was missing.' },
+    ],
+    community: {
+      score: 70,
+      official: { handle: 'pepecoineth', followers: 600_000, tweetsLookedAt: 20, averageLikes: 1234.4, averageReplies: 88 },
+      mentions: { counted: 40, ignoredBots: 5, total: 1200 },
+      telegram: { members: 5000, online: 3, quiet: true },
+    },
+    foundation: { score: 80, facts: [{ id: 'age', label: 'Age', status: 'good', summary: 'Trading for 3 years.' }], exchanges: ['Binance'] },
+    brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+    failures: [{ source: 'holders' }],
+    notes: ['Basic community check.'],
+  };
+
+  const render = (root = document.createElement('div')) => {
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report }] }, { onScan: vi.fn(), onDismiss: vi.fn(), onRecheck: vi.fn() });
+    return root;
+  };
+
+  it('keeps the card short and folds everything else away', () => {
+    const root = render();
+    const short = [...root.querySelectorAll('.bf__report > .bf__issues .bf__issue strong')].map((node) => node.textContent);
+    expect(short).toEqual(['Issue 1', 'Issue 2', 'Issue 3']);
+    const full = root.querySelector<HTMLDetailsElement>('details.bf__full')!;
+    expect(full.open).toBe(false);
+    expect(full.querySelector('summary')?.textContent).toBe('View full scan');
+  });
+
+  it('shows every issue, check, community and foundation detail', () => {
+    const text = render().querySelector('details.bf__full')!.textContent;
+    expect(text).toContain('Issue 4');
+    expect(text).toContain('Details 4.');
+    expect(text).toContain('18 of 20 checks had data.');
+    expect(text).toContain('Minting No one can make more tokens.');
+    expect(text).toContain('@pepecoineth: 600,000 followers. Its last 20 posts averaged 1,234 likes and 88 replies.');
+    expect(text).toContain('1,200 posts mentioned it this week. We read 40 from real accounts, 5 bot posts ignored.');
+    expect(text).toContain('Telegram: 5,000 members, 3 online. Many members but almost nobody online');
+    expect(text).toContain('Age Trading for 3 years.');
+    expect(text).toContain('Listed on Binance.');
+    expect(text).toContain('Basic community check.');
+    expect(text).toContain('Couldn’t reach: holders.');
+  });
+
+  it('falls back to the brief when an older scanner sends only scores', () => {
+    const root = document.createElement('div');
+    const bare: ScanReport = { ...report, securityGroups: undefined, community: undefined, foundation: { score: 50 }, notes: undefined, failures: [] };
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report: bare }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+    const text = root.querySelector('details.bf__full')!.textContent;
+    expect(text).toContain('Community wasn’t checked on this scan.');
+    expect(text).toContain('F.');
+  });
+
+  it('stays open when the card is drawn again', () => {
+    const root = render();
+    root.querySelector<HTMLDetailsElement>('details.bf__full')!.open = true;
+    render(root);
+    const full = root.querySelector<HTMLDetailsElement>('details.bf__full')!;
+    expect(full.open).toBe(true);
+    expect(full.querySelector('summary')?.textContent).toBe('Hide full scan');
   });
 });

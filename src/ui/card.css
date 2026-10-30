@@ -424,3 +424,88 @@
   cursor: default;
   text-decoration: none;
 }
+
+/* "View full scan": everything the scan found, folded away under the short result. */
+.bf__full {
+  margin: 4px 0 10px;
+}
+
+.bf__full-toggle {
+  display: inline-block;
+  margin-bottom: 4px;
+  list-style: none;
+}
+
+.bf__full-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.bf__full-toggle::after {
+  content: ' ▾';
+  text-decoration: none;
+}
+
+.bf__full[open] > .bf__full-toggle::after {
+  content: ' ▴';
+}
+
+.bf__full-part {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bf-line);
+}
+
+.bf__full-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bf-muted);
+}
+
+.bf__detail {
+  display: block;
+  margin-top: 2px;
+  color: var(--bf-muted);
+  font-size: 12px;
+}
+
+.bf__rows {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.bf__rows--plain {
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.bf__row {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.bf__mark {
+  display: inline-block;
+  width: 1.4em;
+  font-weight: 700;
+}
+
+.bf__row--pass .bf__mark,
+.bf__row--good .bf__mark {
+  color: var(--bf-green);
+}
+
+.bf__row--mid .bf__mark {
+  color: var(--bf-yellow);
+}
+
+.bf__row--issue .bf__mark,
+.bf__row--bad .bf__mark {
+  color: var(--bf-red);
+}
+
+.bf__row--unknown .bf__mark {
+  color: var(--bf-muted);
+}
