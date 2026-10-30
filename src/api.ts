@@ -21,17 +21,35 @@ export interface ScanReport {
     score: number | null;
     band: 'low' | 'medium' | 'high' | null;
     /** experimental: a holder check that is still being tuned, labelled so it isn't read as a measured fact. */
-    issues: Array<{ id: string; severity: 'critical' | 'warning' | 'minor'; title: string; summary: string; experimental?: boolean }>;
+    issues: Array<{ id: string; severity: 'critical' | 'warning' | 'minor'; title: string; summary: string; details?: string; experimental?: boolean }>;
+    passed?: Array<{ id: string; label: string }>;
     notChecked: Array<{ id: string; label: string }>;
+    /** Core checks that had data, out of those that apply to the chain. */
+    coverage?: { checked: number; total: number };
   };
-  community?: { score: number | null };
-  foundation: { score: number | null };
+  /** Every security check, grouped as the scanner website shows them. Drawn in "View full scan". */
+  securityGroups?: Array<{ id: string; label: string; status: 'issue' | 'pass' | 'unknown'; summary: string; severity?: 'critical' | 'warning' | 'minor'; experimental?: boolean }>;
+  community?: {
+    score: number | null;
+    official?: { handle: string; followers: number; tweetsLookedAt: number; averageLikes: number; averageReplies: number };
+    mentions?: { counted: number; ignoredBots: number; total?: number };
+    telegram?: { members?: number; online?: number; quiet: boolean };
+    discord?: { members?: number; online?: number; quiet: boolean };
+  };
+  foundation: {
+    score: number | null;
+    facts?: Array<{ id: string; label: string; status: 'good' | 'mid' | 'bad' | 'unknown'; summary: string }>;
+    exchanges?: readonly string[];
+    investors?: readonly string[];
+  };
   brief: { security: string; community: string; foundation: string };
   failures: Array<{ source: string }>;
   /** When shared parts were fetched (ms). The scanner shares X and holder data between users for a while. */
   checked?: { community?: number; holders?: number };
   /** The plan the scan ran on. Free can't re-check. */
   plan?: 'free' | 'pro' | 'ultra';
+  /** Plain-language notes about where this result came from. */
+  notes?: string[];
 }
 
 export class ApiError extends Error {}
