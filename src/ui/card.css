@@ -305,6 +305,17 @@
   margin-bottom: 4px;
 }
 
+.bf__fatal {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--bf-red);
+  border-radius: 8px;
+}
+
+.bf__fatal strong {
+  color: var(--bf-red);
+}
+
 .bf__issue--critical strong {
   color: var(--bf-red);
 }
