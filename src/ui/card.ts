@@ -278,7 +278,7 @@ function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () =
   if (fatal) {
     const why = el('p', 'bf__fatal');
     why.setAttribute('role', 'alert');
-    why.append(el('strong', undefined, `Scored 0: ${fatal.title.toLowerCase()}.`), el('span', undefined, ` ${fatal.summary} You would have no way to get your money back.`));
+    why.append(el('strong', undefined, `Scored 0: ${fatal.title.toLowerCase()}.`), el('span', undefined, ` ${fatal.summary} Nothing else about this token can raise the score.`));
     card.append(why);
   }
 

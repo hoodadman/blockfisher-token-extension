@@ -77,7 +77,7 @@ describe('fatal flags', () => {
     renderCard(root, { kind: 'results', results: [{ token: pepe, report }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
     expect(root.querySelector('.bf__overall-value')?.textContent).toBe('0');
     expect(root.querySelector('.bf__fatal')?.textContent).toBe(
-      'Scored 0: can’t be sold. Our sell test found you can buy this token but not sell it. You would have no way to get your money back.',
+      'Scored 0: can’t be sold. Our sell test found you can buy this token but not sell it. Nothing else about this token can raise the score.',
     );
   });
 
