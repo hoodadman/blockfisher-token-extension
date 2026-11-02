@@ -274,6 +274,14 @@ function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () =
     el('p', `bf__overall-label bf__score--${toneFor(report.overall)}`, riskWords(report.overall)),
   );
 
+  const fatal = report.security.fatal;
+  if (fatal) {
+    const why = el('p', 'bf__fatal');
+    why.setAttribute('role', 'alert');
+    why.append(el('strong', undefined, `Scored 0: ${fatal.title.toLowerCase()}.`), el('span', undefined, ` ${fatal.summary} You would have no way to get your money back.`));
+    card.append(why);
+  }
+
   const row = el('div', 'bf__scores');
   row.append(scoreBox('Security', report.security.score), scoreBox('Community', report.community?.score), scoreBox('Foundation', report.foundation.score));
   card.append(row);

@@ -54,6 +54,50 @@ describe('renderCard', () => {
   });
 });
 
+describe('fatal flags', () => {
+  it('shows 0 and says why when a confirmed flag stops selling', () => {
+    const report: ScanReport = {
+      address: pepe.address!,
+      chain: { name: 'Ethereum', network: 'eth' },
+      symbol: 'PEPE',
+      overall: 0,
+      security: {
+        score: 0,
+        band: 'high',
+        issues: [{ id: 'honeypot', severity: 'critical', title: 'Can’t be sold', summary: 'Our sell test found you can buy this token but not sell it.' }],
+        notChecked: [],
+        fatal: { id: 'honeypot', title: 'Can’t be sold', summary: 'Our sell test found you can buy this token but not sell it.' },
+      },
+      community: { score: 90 },
+      foundation: { score: 90 },
+      brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+      failures: [],
+    };
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+    expect(root.querySelector('.bf__overall-value')?.textContent).toBe('0');
+    expect(root.querySelector('.bf__fatal')?.textContent).toBe(
+      'Scored 0: can’t be sold. Our sell test found you can buy this token but not sell it. You would have no way to get your money back.',
+    );
+  });
+
+  it('shows no fatal note for an ordinary report', () => {
+    const report: ScanReport = {
+      address: pepe.address!,
+      chain: { name: 'Ethereum', network: 'eth' },
+      overall: 80,
+      security: { score: 80, band: 'low', issues: [], notChecked: [] },
+      community: { score: 80 },
+      foundation: { score: 80 },
+      brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+      failures: [],
+    };
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+    expect(root.querySelector('.bf__fatal')).toBeNull();
+  });
+});
+
 describe('"as well?" button', () => {
   it('offers the page’s other tokens after a scan and asks for one when clicked', () => {
     const sol = { input: 'So11111111111111111111111111111111111111112', status: 'token' as const, address: 'So11111111111111111111111111111111111111112', symbol: 'SOL', chainName: 'Solana', network: 'sol' as const };

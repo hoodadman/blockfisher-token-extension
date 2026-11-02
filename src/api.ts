@@ -26,6 +26,8 @@ export interface ScanReport {
     notChecked: Array<{ id: string; label: string }>;
     /** Core checks that had data, out of those that apply to the chain. */
     coverage?: { checked: number; total: number };
+    /** Set when a confirmed flag that stops holders selling (e.g. a honeypot) forced Security and the overall to 0. Absent on older scanners. */
+    fatal?: { id: string; title: string; summary: string } | null;
   };
   /** Every security check, grouped as the scanner website shows them. Drawn in "View full scan". */
   securityGroups?: Array<{ id: string; label: string; status: 'issue' | 'pass' | 'unknown'; summary: string; severity?: 'critical' | 'warning' | 'minor'; experimental?: boolean }>;
