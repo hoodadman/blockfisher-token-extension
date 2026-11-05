@@ -328,6 +328,11 @@ function contractLine(address: string): HTMLElement {
 
 function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () => void, error?: string, fullOpen = false): HTMLElement {
   const card = el('section', 'bf__report');
+  if (report.capAlert) {
+    const alert = el('p', 'bf__cap', report.capAlert);
+    alert.setAttribute('role', 'status');
+    card.append(alert);
+  }
   const title = el('div', 'bf__report-title');
   title.append(el('strong', undefined, report.symbol || report.name || tokenLabel(token)), el('span', 'bf__muted', ` on ${report.chain.name}`));
   card.append(title);

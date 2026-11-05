@@ -318,6 +318,15 @@
   color: var(--bf-red);
 }
 
+/* Shown at the top of a result once the month's fresh community checks are used up. */
+.bf__cap {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--bf-accent);
+  border-radius: 8px;
+  background: var(--bf-panel);
+}
+
 .bf__issue--critical strong {
   color: var(--bf-red);
 }
