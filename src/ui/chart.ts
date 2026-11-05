@@ -1,4 +1,5 @@
 import { toneFor } from './card';
+import { PILLAR_HELP } from './pillars';
 
 /**
  * The scanner website's score triangle: one petal per pillar, filled from the centre by
@@ -57,7 +58,8 @@ export function scoreChart(overall: number | null, pillars: readonly Pillar[]): 
 
     const petal = svg('g', { class: `bf-chart__petal bf-chart__petal--${toneFor(pillar.score)}` });
     const title = svg('title', {});
-    title.textContent = pillar.score === null || pillar.score === undefined ? `${pillar.label}: no score yet` : `${pillar.label}: ${pillar.score} / 100`;
+    const scored = pillar.score === null || pillar.score === undefined ? `${pillar.label}: no score yet` : `${pillar.label}: ${pillar.score} / 100`;
+    title.textContent = `${scored}. ${PILLAR_HELP[pillar.id]}`;
     petal.append(title, svg('polygon', { class: 'bf-chart__track', points: points(tip, left, right) }));
     if (fill > 0) {
       const empty = points(mid, left, right);
