@@ -251,6 +251,7 @@
 }
 
 .bf__scores {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
@@ -258,6 +259,7 @@
 }
 
 .bf__score {
+  cursor: help;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -467,6 +469,10 @@
 }
 
 .bf__full-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
   margin: 0 0 6px;
   font-size: 13px;
   text-transform: uppercase;
@@ -519,4 +525,78 @@
 
 .bf__row--unknown .bf__mark {
   color: var(--bf-muted);
+}
+
+/* The (i) after each pillar name, and the box it opens. */
+.bf__info {
+  margin-left: 3px;
+  font-size: 11px;
+}
+
+.bf__info-button {
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: help;
+}
+
+.bf__score:focus-visible,
+.bf__info-button:focus-visible {
+  outline: 2px solid var(--bf-accent);
+  outline-offset: 2px;
+}
+
+.bf__tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: none;
+  padding: 8px 10px;
+  background: var(--bf-bg);
+  border: 1px solid var(--bf-line);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.18);
+  color: var(--bf-text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+.bf__has-tip:hover > .bf__tip,
+.bf__has-tip:focus-visible > .bf__tip,
+.bf__tip-open > .bf__tip {
+  display: block;
+}
+
+/* Contract address under the token name. */
+.bf__contract {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: -4px 0 8px;
+}
+
+.bf__contract-label {
+  flex-basis: 100%;
+  color: var(--bf-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bf__contract-address {
+  min-width: 0;
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
 }

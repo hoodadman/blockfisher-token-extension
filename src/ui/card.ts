@@ -2,6 +2,7 @@ import type { ScanReport } from '../api';
 import type { IdentifiedToken } from '../readers/types';
 import { fillUp, scoreChart } from './chart';
 import { DIVE_CLEAR_MS, diveLayer } from './dive';
+import { PILLAR_HELP, type PillarId } from './pillars';
 
 /**
  * The "Run scan?" card and the results. Plain DOM, so it can live in a shadow root on any
@@ -152,9 +153,49 @@ export function checkedText(report: ScanReport, now = Date.now()): string | null
 
 const shortAddress = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
-function scoreBox(label: string, score: number | null | undefined): HTMLElement {
+let tipCount = 0;
+
+/**
+ * Gives `trigger` a tooltip: it shows on mouse hover and keyboard focus, and a click or tap
+ * keeps it open until focus moves away or Escape is pressed. The box is placed by CSS against
+ * the trigger's nearest positioned parent, so it can span the card instead of a small icon.
+ */
+function addTip(trigger: HTMLElement, text: string): void {
+  const tip = el('span', 'bf__tip', text);
+  tip.id = `bf-tip-${++tipCount}`;
+  tip.setAttribute('role', 'tooltip');
+  trigger.classList.add('bf__has-tip');
+  trigger.setAttribute('aria-describedby', tip.id);
+  trigger.setAttribute('aria-expanded', 'false');
+  const set = (open: boolean) => {
+    trigger.classList.toggle('bf__tip-open', open);
+    trigger.setAttribute('aria-expanded', String(open));
+  };
+  trigger.addEventListener('click', () => set(!trigger.classList.contains('bf__tip-open')));
+  trigger.addEventListener('blur', () => set(false));
+  trigger.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && trigger.classList.contains('bf__tip-open')) {
+      event.stopPropagation();
+      set(false);
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      if (trigger.tagName === 'BUTTON') return;
+      event.preventDefault();
+      set(!trigger.classList.contains('bf__tip-open'));
+    }
+  });
+  trigger.append(tip);
+}
+
+function scoreBox(id: PillarId, label: string, score: number | null | undefined): HTMLElement {
   const box = el('div', `bf__score bf__score--${toneFor(score)}`);
-  box.append(el('span', 'bf__score-value', score === null || score === undefined ? '–' : String(score)), el('span', 'bf__score-label', label));
+  box.tabIndex = 0;
+  box.setAttribute('role', 'button');
+  box.setAttribute('aria-label', `${label}: ${score === null || score === undefined ? 'no score' : `${score} out of 100`}. What does this mean?`);
+  const name = el('span', 'bf__score-label', label);
+  name.append(el('span', 'bf__info', 'ⓘ'));
+  box.append(el('span', 'bf__score-value', score === null || score === undefined ? '–' : String(score)), name);
+  addTip(box, PILLAR_HELP[id]);
   return box;
 }
 
@@ -163,9 +204,15 @@ const count = (value: number) => value.toLocaleString('en-GB');
 const STATUS_MARK = { issue: '✕', pass: '✓', unknown: '?', good: '✓', mid: '~', bad: '✕' } as const;
 const STATUS_WORD = { issue: 'Issue', pass: 'Passed', unknown: 'Not checked', good: 'Good', mid: 'Mixed', bad: 'Poor' } as const;
 
-function section(title: string): HTMLElement {
+function section(id: PillarId, title: string): HTMLElement {
   const part = el('div', 'bf__full-part');
-  part.append(el('h4', 'bf__full-title', title));
+  const heading = el('h4', 'bf__full-title', title);
+  const info = el('button', 'bf__info-button', 'ⓘ');
+  info.type = 'button';
+  info.setAttribute('aria-label', `What does ${title} mean?`);
+  addTip(info, PILLAR_HELP[id]);
+  heading.append(info);
+  part.append(heading);
   return part;
 }
 
@@ -196,7 +243,7 @@ export function fullView(report: ScanReport, open = false): HTMLDetailsElement {
     summary.textContent = details.open ? 'Hide full scan' : 'View full scan';
   });
 
-  const security = section('Security');
+  const security = section('security', 'Security');
   const { coverage } = report.security;
   if (coverage) security.append(el('p', 'bf__small', `${coverage.checked} of ${coverage.total} checks had data.`));
   if (report.security.issues.length > 0) {
@@ -221,7 +268,7 @@ export function fullView(report: ScanReport, open = false): HTMLDetailsElement {
   if (rows.childElementCount > 0) security.append(rows);
   details.append(security);
 
-  const community = section('Community');
+  const community = section('community', 'Community');
   const found = report.community;
   if (!found) {
     community.append(el('p', undefined, 'Community wasn’t checked on this scan.'));
@@ -244,7 +291,7 @@ export function fullView(report: ScanReport, open = false): HTMLDetailsElement {
   }
   details.append(community);
 
-  const foundation = section('Foundation');
+  const foundation = section('foundation', 'Foundation');
   const facts = el('ul', 'bf__rows');
   for (const fact of report.foundation.facts ?? []) facts.append(line(fact.status, fact.label, fact.summary));
   if (facts.childElementCount > 0) foundation.append(facts);
@@ -259,11 +306,33 @@ export function fullView(report: ScanReport, open = false): HTMLDetailsElement {
   return details;
 }
 
+/** The full contract address under the token's name, so people can check it is the token they meant. */
+function contractLine(address: string): HTMLElement {
+  const line = el('p', 'bf__contract');
+  line.append(el('span', 'bf__contract-label', 'Contract address'), el('code', 'bf__contract-address', address));
+  const copy = el('button', 'bf__link bf__copy', 'Copy');
+  copy.type = 'button';
+  copy.setAttribute('aria-label', 'Copy contract address');
+  copy.addEventListener('click', () => {
+    navigator.clipboard?.writeText(address).then(
+      () => {
+        copy.textContent = 'Copied';
+        setTimeout(() => (copy.textContent = 'Copy'), 2000);
+      },
+      () => undefined,
+    );
+  });
+  line.append(copy);
+  return line;
+}
+
 function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () => void, error?: string, fullOpen = false): HTMLElement {
   const card = el('section', 'bf__report');
   const title = el('div', 'bf__report-title');
   title.append(el('strong', undefined, report.symbol || report.name || tokenLabel(token)), el('span', 'bf__muted', ` on ${report.chain.name}`));
   card.append(title);
+  const address = report.address || token.address;
+  if (address) card.append(contractLine(address));
 
   card.append(
     scoreChart(report.overall, [
@@ -283,7 +352,11 @@ function reportView(token: IdentifiedToken, report: ScanReport, onRecheck?: () =
   }
 
   const row = el('div', 'bf__scores');
-  row.append(scoreBox('Security', report.security.score), scoreBox('Community', report.community?.score), scoreBox('Foundation', report.foundation.score));
+  row.append(
+    scoreBox('security', 'Security', report.security.score),
+    scoreBox('community', 'Community', report.community?.score),
+    scoreBox('foundation', 'Foundation', report.foundation.score),
+  );
   card.append(row);
 
   const top = report.security.issues.slice(0, 3);

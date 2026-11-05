@@ -52,6 +52,44 @@ describe('renderCard', () => {
     expect(root.textContent).toContain('unfinished');
     expect(root.querySelector('.bf__score--none')?.textContent).toContain('Community');
   });
+
+  it('explains each pillar on hover, focus or tap, and shows the full contract address', () => {
+    const report: ScanReport = {
+      address: pepe.address!,
+      chain: { name: 'Ethereum', network: 'eth' },
+      symbol: 'PEPE',
+      overall: 70,
+      security: { score: 80, band: 'low', issues: [], notChecked: [] },
+      community: { score: 60 },
+      foundation: { score: 70 },
+      brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+      failures: [],
+    };
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+
+    const boxes = [...root.querySelectorAll<HTMLElement>('.bf__scores .bf__score')];
+    expect(boxes).toHaveLength(3);
+    for (const box of boxes) {
+      const tip = root.querySelector(`#${box.getAttribute('aria-describedby')}`);
+      expect(tip?.getAttribute('role')).toBe('tooltip');
+      expect(box.tabIndex).toBe(0);
+    }
+    expect(root.querySelector(`#${boxes[0].getAttribute('aria-describedby')}`)?.textContent).toContain('stopped from selling');
+    expect(root.querySelector(`#${boxes[1].getAttribute('aria-describedby')}`)?.textContent).toContain('X (Twitter)');
+    expect(root.querySelector(`#${boxes[2].getAttribute('aria-describedby')}`)?.textContent).toContain('exchanges list it');
+
+    // A tap keeps it open; moving focus away closes it.
+    boxes[2].click();
+    expect(boxes[2].classList.contains('bf__tip-open')).toBe(true);
+    boxes[2].dispatchEvent(new FocusEvent('blur'));
+    expect(boxes[2].classList.contains('bf__tip-open')).toBe(false);
+
+    // The full scan's headings have the same explanations.
+    expect(root.querySelectorAll('.bf__full-title .bf__tip')).toHaveLength(3);
+
+    expect(root.querySelector('.bf__contract-address')?.textContent).toBe(pepe.address);
+  });
 });
 
 describe('fatal flags', () => {
