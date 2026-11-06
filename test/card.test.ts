@@ -136,6 +136,34 @@ describe('fatal flags', () => {
   });
 });
 
+describe('monthly community cap', () => {
+  const base: ScanReport = {
+    address: pepe.address!,
+    chain: { name: 'Ethereum', network: 'eth' },
+    overall: 80,
+    security: { score: 80, band: 'low', issues: [], notChecked: [] },
+    community: { score: 80 },
+    foundation: { score: 80 },
+    brief: { security: 'S.', community: 'C.', foundation: 'F.' },
+    failures: [],
+  };
+
+  it('shows the alert first, above the token name, once the checks are used up', () => {
+    const capAlert = 'You’ve used all 30 of this month’s fresh community checks. Security still runs fresh on every scan.';
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report: { ...base, capAlert } }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+    const alert = root.querySelector('.bf__report > .bf__cap');
+    expect(alert?.textContent).toBe(capAlert);
+    expect(alert?.previousElementSibling).toBeNull();
+  });
+
+  it('shows no alert while checks are left', () => {
+    const root = document.createElement('div');
+    renderCard(root, { kind: 'results', results: [{ token: pepe, report: base }] }, { onScan: vi.fn(), onDismiss: vi.fn() });
+    expect(root.querySelector('.bf__cap')).toBeNull();
+  });
+});
+
 describe('"as well?" button', () => {
   it('offers the page’s other tokens after a scan and asks for one when clicked', () => {
     const sol = { input: 'So11111111111111111111111111111111111111112', status: 'token' as const, address: 'So11111111111111111111111111111111111111112', symbol: 'SOL', chainName: 'Solana', network: 'sol' as const };

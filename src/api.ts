@@ -52,6 +52,8 @@ export interface ScanReport {
   plan?: 'free' | 'pro' | 'ultra';
   /** Plain-language notes about where this result came from. */
   notes?: string[];
+  /** Set once this month's fresh community checks are used up; shown at the top of the result. */
+  capAlert?: string;
 }
 
 export class ApiError extends Error {}
